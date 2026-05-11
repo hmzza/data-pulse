@@ -9,19 +9,19 @@ export default {
       },
       colors: {
         trace: {
-          bg: "#020617",
-          panel: "#07111f",
-          panel2: "#0b1628",
-          cyan: "#22d3ee",
-          blue: "#3b82f6",
+          bg: "#08030a",
+          panel: "#120714",
+          panel2: "#1b0a1f",
+          pink: "#ec4899",
+          fuchsia: "#c026d3",
           emerald: "#34d399",
           amber: "#f59e0b",
           rose: "#fb7185",
         },
       },
       boxShadow: {
-        glow: "0 0 45px rgba(34, 211, 238, 0.18)",
-        "glow-blue": "0 0 45px rgba(59, 130, 246, 0.22)",
+        glow: "0 0 45px rgba(236, 72, 153, 0.22)",
+        "glow-fuchsia": "0 0 45px rgba(192, 38, 211, 0.24)",
       },
       animation: {
         float: "float 7s ease-in-out infinite",

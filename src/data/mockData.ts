@@ -14,7 +14,7 @@ export const metrics = [
     label: "Total Issues",
     value: "248",
     delta: "+18 this week",
-    tone: "cyan",
+    tone: "pink",
     icon: Activity,
   },
   {
@@ -155,7 +155,7 @@ export const flowSteps = [
     title: "CSRTB",
     subtitle: "Customer reporting table",
     status: "INACTIVE",
-    tone: "cyan",
+    tone: "pink",
     icon: Sparkles,
   },
 ];

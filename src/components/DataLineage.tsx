@@ -2,7 +2,7 @@ import { ChevronRight } from "lucide-react";
 import { flowSteps } from "../data/mockData";
 
 const toneMap: Record<string, string> = {
-  cyan: "border-cyan-300/25 bg-cyan-400/10 text-cyan-100",
+  pink: "border-pink-300/25 bg-pink-400/10 text-pink-100",
   emerald: "border-emerald-300/25 bg-emerald-400/10 text-emerald-100",
   amber: "border-amber-300/25 bg-amber-400/10 text-amber-100",
   rose: "border-rose-300/25 bg-rose-400/10 text-rose-100",
@@ -27,7 +27,7 @@ export function DataLineage() {
           </div>
           {index < flowSteps.length - 1 ? (
             <div className="hidden items-center justify-center lg:flex">
-              <ChevronRight className="h-6 w-6 text-cyan-200/70" />
+              <ChevronRight className="h-6 w-6 text-pink-200/70" />
             </div>
           ) : null}
         </div>

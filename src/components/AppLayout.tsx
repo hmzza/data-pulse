@@ -2,7 +2,6 @@ import {
   BarChart3,
   Bell,
   BrainCircuit,
-  DatabaseZap,
   FileClock,
   LayoutDashboard,
   Menu,
@@ -27,8 +26,8 @@ export function AppLayout() {
   return (
     <div className="min-h-screen bg-trace-bg text-slate-100">
       <div className="pointer-events-none fixed inset-0 opacity-70">
-        <div className="absolute left-[14%] top-10 h-64 w-64 rounded-full bg-cyan-500/10 blur-3xl" />
-        <div className="absolute right-[10%] top-20 h-72 w-72 rounded-full bg-blue-500/10 blur-3xl" />
+        <div className="absolute left-[14%] top-10 h-64 w-64 rounded-full bg-pink-500/10 blur-3xl" />
+        <div className="absolute right-[10%] top-20 h-72 w-72 rounded-full bg-fuchsia-500/10 blur-3xl" />
         <div className="absolute bottom-0 left-[45%] h-80 w-80 rounded-full bg-emerald-500/10 blur-3xl" />
       </div>
 
@@ -39,12 +38,10 @@ export function AppLayout() {
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="grid h-11 w-11 place-items-center rounded-2xl bg-gradient-to-br from-cyan-300 to-blue-500 text-slate-950 shadow-glow">
-              <DatabaseZap className="h-6 w-6" />
-            </div>
+            <img src="/data-pulse-logo.png" alt="Data Pulse logo" className="h-12 w-12 object-contain drop-shadow-[0_0_20px_rgba(236,72,153,0.45)]" />
             <div>
               <p className="text-xl font-extrabold tracking-tight text-white">Data Pulse</p>
-              <p className="text-xs font-medium uppercase tracking-[0.24em] text-cyan-300/70">RCA Console</p>
+              <p className="text-xs font-medium uppercase tracking-[0.24em] text-pink-300/70">RCA Console</p>
             </div>
           </div>
           <button className="rounded-xl p-2 text-slate-300 hover:bg-white/10 lg:hidden" onClick={() => setOpen(false)} aria-label="Close navigation">
@@ -61,7 +58,7 @@ export function AppLayout() {
               className={({ isActive }) =>
                 `group flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold transition ${
                   isActive
-                    ? "bg-cyan-400/12 text-cyan-100 shadow-glow"
+                    ? "bg-pink-400/12 text-pink-100 shadow-glow"
                     : "text-slate-400 hover:bg-white/10 hover:text-white"
                 }`
               }
@@ -72,9 +69,9 @@ export function AppLayout() {
           ))}
         </nav>
 
-        <div className="absolute bottom-5 left-4 right-4 rounded-2xl border border-cyan-300/15 bg-cyan-300/10 p-4">
+        <div className="absolute bottom-5 left-4 right-4 rounded-2xl border border-pink-300/15 bg-pink-300/10 p-4">
           <div className="flex items-center gap-3">
-            <ShieldCheck className="h-5 w-5 text-cyan-200" />
+            <ShieldCheck className="h-5 w-5 text-pink-200" />
             <div>
               <p className="text-sm font-semibold text-white">Mock Mode Active</p>
               <p className="text-xs text-slate-400">Frontend-only demo data</p>
@@ -93,7 +90,7 @@ export function AppLayout() {
                 <Menu className="h-5 w-5" />
               </button>
               <div className="hidden min-w-0 items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-slate-400 md:flex">
-                <Search className="h-4 w-4 text-cyan-200" />
+                <Search className="h-4 w-4 text-pink-200" />
                 <span className="truncate">Search customer, report, investigation ID...</span>
               </div>
             </div>
@@ -102,12 +99,10 @@ export function AppLayout() {
                 <span className="h-2 w-2 animate-soft-pulse rounded-full bg-emerald-300" />
                 Analysis Engine Ready
               </div>
-              <button className="rounded-xl border border-white/10 bg-white/5 p-2.5 text-slate-200 transition hover:border-cyan-300/30 hover:text-cyan-100" aria-label="Notifications">
+              <button className="rounded-xl border border-white/10 bg-white/5 p-2.5 text-slate-200 transition hover:border-pink-300/30 hover:text-pink-100" aria-label="Notifications">
                 <Bell className="h-5 w-5" />
               </button>
-              <div className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-cyan-300 to-blue-500 text-sm font-bold text-slate-950">
-                DP
-              </div>
+              <img src="/data-pulse-logo.png" alt="Data Pulse" className="h-10 w-10 object-contain drop-shadow-[0_0_18px_rgba(236,72,153,0.42)]" />
             </div>
           </div>
         </header>

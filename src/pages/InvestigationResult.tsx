@@ -12,7 +12,7 @@ export function InvestigationResult() {
       <div className="space-y-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.24em] text-cyan-300/80">Investigation RCA-1048</p>
+            <p className="text-sm font-semibold uppercase tracking-[0.24em] text-pink-300/80">Investigation RCA-1048</p>
             <h1 className="mt-2 text-3xl font-bold tracking-tight text-white sm:text-4xl">Customer Status Mismatch Analysis</h1>
             <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-400">
               Simulated RCA result showing data comparison, suspected transformation logic, SQL evidence, lineage, and assistant explanation.
@@ -37,7 +37,7 @@ export function InvestigationResult() {
           </div>
           <div className="glass-panel rounded-2xl p-5">
             <div className="flex items-center gap-3">
-              <BrainCircuit className="h-5 w-5 text-cyan-200" />
+              <BrainCircuit className="h-5 w-5 text-pink-200" />
               <p className="text-sm font-semibold text-slate-300">AI Explanation</p>
             </div>
             <p className="mt-4 text-sm leading-6 text-slate-200">CASE statement in SQL converted ACTIVE to INACTIVE when dormant_flag was null.</p>
@@ -51,7 +51,7 @@ export function InvestigationResult() {
           </div>
         </div>
 
-        <SectionPanel title="Customer Information" eyebrow="Context snapshot" action={<Database className="h-5 w-5 text-cyan-200" />}>
+        <SectionPanel title="Customer Information" eyebrow="Context snapshot" action={<Database className="h-5 w-5 text-pink-200" />}>
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {customerInfo.map((item) => (
               <div key={item.label} className="rounded-2xl border border-white/10 bg-white/5 p-4">
@@ -80,7 +80,7 @@ export function InvestigationResult() {
                   <tr key={row.label} className="transition hover:bg-white/5">
                     <td className="py-4 font-semibold text-white">{row.label}</td>
                     <td className="py-4 text-slate-300">{row.system}</td>
-                    <td className="py-4 font-mono text-cyan-100">{row.field}</td>
+                    <td className="py-4 font-mono text-pink-100">{row.field}</td>
                     <td className="py-4 text-slate-300">{row.expected}</td>
                     <td className={row.status === "Failed" ? "py-4 font-semibold text-rose-200" : "py-4 text-slate-300"}>{row.actual}</td>
                     <td className="py-4">
@@ -111,7 +111,7 @@ export function InvestigationResult() {
           <DataLineage />
         </SectionPanel>
 
-        <SectionPanel title="SQL Script Viewer" eyebrow="Highlighted suspected logic" action={<Sparkles className="h-5 w-5 text-cyan-200" />}>
+        <SectionPanel title="SQL Script Viewer" eyebrow="Highlighted suspected logic" action={<Sparkles className="h-5 w-5 text-pink-200" />}>
           <SQLViewer />
         </SectionPanel>
       </div>

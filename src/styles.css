@@ -17,7 +17,7 @@
 html {
   min-width: 320px;
   min-height: 100%;
-  background: #020617;
+  background: #08030a;
 }
 
 body {
@@ -26,9 +26,9 @@ body {
   min-height: 100vh;
   overflow-x: hidden;
   background:
-    radial-gradient(circle at 12% 8%, rgba(34, 211, 238, 0.12), transparent 28rem),
-    radial-gradient(circle at 78% 0%, rgba(59, 130, 246, 0.14), transparent 26rem),
-    linear-gradient(135deg, #020617 0%, #07111f 48%, #020617 100%);
+    radial-gradient(circle at 12% 8%, rgba(236, 72, 153, 0.16), transparent 28rem),
+    radial-gradient(circle at 78% 0%, rgba(192, 38, 211, 0.16), transparent 26rem),
+    linear-gradient(135deg, #08030a 0%, #160817 48%, #08030a 100%);
 }
 
 button,
@@ -43,7 +43,7 @@ button {
 }
 
 ::selection {
-  background: rgba(34, 211, 238, 0.28);
+  background: rgba(236, 72, 153, 0.32);
 }
 
 ::-webkit-scrollbar {
@@ -61,7 +61,7 @@ button {
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(34, 211, 238, 0.5);
+  background: rgba(236, 72, 153, 0.55);
 }
 
 .glass-panel {
@@ -87,13 +87,13 @@ button {
   position: absolute;
   inset: 0;
   transform: translateX(-120%);
-  background: linear-gradient(90deg, transparent, rgba(34, 211, 238, 0.13), transparent);
+  background: linear-gradient(90deg, transparent, rgba(236, 72, 153, 0.16), transparent);
   animation: shimmer 4.5s linear infinite;
   pointer-events: none;
 }
 
 .sql-keyword {
-  color: #67e8f9;
+  color: #f9a8d4;
 }
 
 .sql-function {

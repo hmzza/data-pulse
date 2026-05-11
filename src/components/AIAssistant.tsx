@@ -6,7 +6,7 @@ export function AIAssistant() {
     <aside className="glass-panel flex h-full min-h-[560px] flex-col rounded-2xl">
       <div className="border-b border-white/10 p-5">
         <div className="flex items-center gap-3">
-          <div className="grid h-11 w-11 place-items-center rounded-2xl bg-gradient-to-br from-cyan-300 to-blue-500 text-slate-950 shadow-glow">
+          <div className="grid h-11 w-11 place-items-center rounded-2xl bg-gradient-to-br from-pink-300 to-fuchsia-500 text-slate-950 shadow-glow">
             <Bot className="h-6 w-6" />
           </div>
           <div>
@@ -22,13 +22,13 @@ export function AIAssistant() {
           return (
             <div key={`${message.role}-${index}`} className={`flex gap-3 ${isAssistant ? "" : "justify-end"}`}>
               {isAssistant ? (
-                <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-cyan-400/15 text-cyan-100">
+                <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-pink-400/15 text-pink-100">
                   <Sparkles className="h-4 w-4" />
                 </div>
               ) : null}
               <div
                 className={`max-w-[82%] rounded-2xl px-4 py-3 text-sm leading-6 ${
-                  isAssistant ? "border border-cyan-300/15 bg-cyan-400/10 text-slate-100" : "bg-white text-slate-950"
+                  isAssistant ? "border border-pink-300/15 bg-pink-400/10 text-slate-100" : "bg-white text-slate-950"
                 }`}
               >
                 {message.text}
@@ -50,7 +50,7 @@ export function AIAssistant() {
             placeholder="Ask about RCA result..."
             aria-label="Ask assistant"
           />
-          <button className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-cyan-300 text-slate-950 transition hover:bg-cyan-200" aria-label="Send message">
+          <button className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#b00062] text-white shadow-[0_0_22px_rgba(176,0,98,0.28)] transition hover:bg-[#c01878]" aria-label="Send message">
             <Send className="h-4 w-4" />
           </button>
         </div>

@@ -20,7 +20,7 @@ export function SQLViewer() {
     <div className="overflow-hidden rounded-2xl border border-slate-700/70 bg-slate-950/80 shadow-2xl">
       <div className="flex items-center justify-between border-b border-slate-800 bg-slate-900/80 px-4 py-3">
         <div className="flex items-center gap-2">
-          <Code2 className="h-4 w-4 text-cyan-200" />
+          <Code2 className="h-4 w-4 text-pink-200" />
           <p className="text-sm font-semibold text-slate-100">REPORT_CUSTOMER_STATUS.sql</p>
         </div>
         <div className="flex items-center gap-2 rounded-full border border-rose-400/20 bg-rose-500/10 px-3 py-1 text-xs font-semibold text-rose-100">

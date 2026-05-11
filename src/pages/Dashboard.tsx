@@ -18,20 +18,20 @@ import { SectionPanel } from "../components/SectionPanel";
 import { investigationVolume, issueTrendData, metrics, recentInvestigations, severityData } from "../data/mockData";
 import { priorityClass } from "../utils/status";
 
-const pieColors = ["#fb7185", "#f59e0b", "#22d3ee", "#94a3b8"];
+const pieColors = ["#fb7185", "#f59e0b", "#ec4899", "#94a3b8"];
 
 export function Dashboard() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.24em] text-cyan-300/80">Operations dashboard</p>
+          <p className="text-sm font-semibold uppercase tracking-[0.24em] text-pink-300/80">Operations dashboard</p>
           <h1 className="mt-2 text-3xl font-bold tracking-tight text-white sm:text-4xl">Data RCA Command Center</h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-400">
             Monitor issue intake, RCA throughput, severity trends, and recent investigations with static demo data.
           </p>
         </div>
-        <button className="flex items-center gap-2 rounded-2xl border border-cyan-300/20 bg-cyan-400/10 px-4 py-3 text-sm font-semibold text-cyan-100 transition hover:border-cyan-200/50 hover:bg-cyan-400/15">
+        <button className="flex items-center gap-2 rounded-2xl border border-pink-300/20 bg-pink-400/10 px-4 py-3 text-sm font-semibold text-pink-100 transition hover:border-pink-200/50 hover:bg-pink-400/15">
           <Filter className="h-4 w-4" />
           Filter View
         </button>
@@ -44,14 +44,14 @@ export function Dashboard() {
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[1.4fr_0.9fr]">
-        <SectionPanel title="Issue Trend" eyebrow="7-day RCA movement" action={<BarChart3 className="h-5 w-5 text-cyan-200" />}>
+        <SectionPanel title="Issue Trend" eyebrow="7-day RCA movement" action={<BarChart3 className="h-5 w-5 text-pink-200" />}>
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={issueTrendData} margin={{ left: -18, right: 8, top: 8, bottom: 0 }}>
                 <defs>
                   <linearGradient id="open" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#22d3ee" stopOpacity={0.34} />
-                    <stop offset="95%" stopColor="#22d3ee" stopOpacity={0.02} />
+                    <stop offset="5%" stopColor="#ec4899" stopOpacity={0.36} />
+                    <stop offset="95%" stopColor="#ec4899" stopOpacity={0.02} />
                   </linearGradient>
                   <linearGradient id="resolved" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#34d399" stopOpacity={0.28} />
@@ -61,7 +61,7 @@ export function Dashboard() {
                 <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: "#94a3b8", fontSize: 12 }} />
                 <YAxis axisLine={false} tickLine={false} tick={{ fill: "#94a3b8", fontSize: 12 }} />
                 <Tooltip contentStyle={{ background: "#020617", border: "1px solid rgba(148,163,184,0.2)", borderRadius: 14 }} />
-                <Area type="monotone" dataKey="open" stroke="#22d3ee" strokeWidth={3} fill="url(#open)" />
+                <Area type="monotone" dataKey="open" stroke="#ec4899" strokeWidth={3} fill="url(#open)" />
                 <Area type="monotone" dataKey="resolved" stroke="#34d399" strokeWidth={3} fill="url(#resolved)" />
               </AreaChart>
             </ResponsiveContainer>
@@ -103,13 +103,13 @@ export function Dashboard() {
                 <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: "#94a3b8", fontSize: 12 }} />
                 <YAxis axisLine={false} tickLine={false} tick={{ fill: "#94a3b8", fontSize: 12 }} />
                 <Tooltip contentStyle={{ background: "#020617", border: "1px solid rgba(148,163,184,0.2)", borderRadius: 14 }} />
-                <Bar dataKey="investigations" radius={[10, 10, 0, 0]} fill="#3b82f6" />
+                <Bar dataKey="investigations" radius={[10, 10, 0, 0]} fill="#c026d3" />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </SectionPanel>
 
-        <SectionPanel title="Recent Investigations" eyebrow="Latest RCA activity" action={<Database className="h-5 w-5 text-cyan-200" />}>
+        <SectionPanel title="Recent Investigations" eyebrow="Latest RCA activity" action={<Database className="h-5 w-5 text-pink-200" />}>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[780px] text-left text-sm">
               <thead>
@@ -125,7 +125,7 @@ export function Dashboard() {
               <tbody className="divide-y divide-white/10">
                 {recentInvestigations.slice(0, 5).map((item) => (
                   <tr key={item.id} className="transition hover:bg-white/5">
-                    <td className="py-4 font-semibold text-cyan-100">{item.id}</td>
+                    <td className="py-4 font-semibold text-pink-100">{item.id}</td>
                     <td className="py-4 text-slate-300">{item.customerId}</td>
                     <td className="py-4 text-slate-300">{item.issueType}</td>
                     <td className="py-4">
@@ -136,7 +136,7 @@ export function Dashboard() {
                     </td>
                     <td className="py-4">
                       <div className="flex items-center gap-2 text-slate-300">
-                        <BrainCircuit className="h-4 w-4 text-cyan-200" />
+                        <BrainCircuit className="h-4 w-4 text-pink-200" />
                         <span>{item.rcaResult}</span>
                         <ArrowUpRight className="h-4 w-4 text-slate-500" />
                       </div>
