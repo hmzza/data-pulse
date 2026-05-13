@@ -3,6 +3,7 @@ import {
   Bell,
   BrainCircuit,
   FileClock,
+  FileCode2,
   LayoutDashboard,
   Menu,
   PlusCircle,
@@ -15,6 +16,7 @@ import { NavLink, Outlet } from "react-router-dom";
 
 const navItems = [
   { label: "Dashboard", to: "/dashboard", icon: LayoutDashboard },
+  { label: "Reports", to: "/reports", icon: FileCode2 },
   { label: "New Investigation", to: "/new", icon: PlusCircle },
   { label: "RCA Result", to: "/result/RCA-1048", icon: BrainCircuit },
   { label: "History", to: "/history", icon: FileClock },

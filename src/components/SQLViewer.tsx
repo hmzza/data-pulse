@@ -15,21 +15,38 @@ function highlightSql(code: string) {
     .replace(/\b(\d+)\b/g, '<span class="sql-number">$1</span>');
 }
 
-export function SQLViewer() {
+type SQLViewerProps = {
+  sqlCode?: string;
+  suspiciousLines?: number[];
+  filename?: string;
+};
+
+export function SQLViewer({ sqlCode, suspiciousLines = [], filename = "REPORT_CUSTOMER_STATUS.sql" }: SQLViewerProps) {
+  const lines = sqlCode
+    ? sqlCode.split(/\r?\n/).map((code, index) => ({
+        number: index + 1,
+        code,
+        suspicious: suspiciousLines.includes(index + 1),
+      }))
+    : sqlLines;
+  const firstSuspiciousLine = lines.find((line) => line.suspicious)?.number;
+
   return (
     <div className="overflow-hidden rounded-2xl border border-slate-700/70 bg-slate-950/80 shadow-2xl">
       <div className="flex items-center justify-between border-b border-slate-800 bg-slate-900/80 px-4 py-3">
         <div className="flex items-center gap-2">
           <Code2 className="h-4 w-4 text-pink-200" />
-          <p className="text-sm font-semibold text-slate-100">REPORT_CUSTOMER_STATUS.sql</p>
+          <p className="text-sm font-semibold text-slate-100">{filename}</p>
         </div>
-        <div className="flex items-center gap-2 rounded-full border border-rose-400/20 bg-rose-500/10 px-3 py-1 text-xs font-semibold text-rose-100">
-          <AlertTriangle className="h-3.5 w-3.5" />
-          Suspicious line 6
-        </div>
+        {firstSuspiciousLine ? (
+          <div className="flex items-center gap-2 rounded-full border border-rose-400/20 bg-rose-500/10 px-3 py-1 text-xs font-semibold text-rose-100">
+            <AlertTriangle className="h-3.5 w-3.5" />
+            Suspicious line {firstSuspiciousLine}
+          </div>
+        ) : null}
       </div>
       <div className="max-h-[430px] overflow-auto p-3 font-mono text-sm leading-6">
-        {sqlLines.map((line) => (
+        {lines.map((line) => (
           <div
             key={line.number}
             className={`grid grid-cols-[3rem_1fr] rounded-lg px-2 transition ${

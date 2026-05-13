@@ -1,123 +1,211 @@
-import { AlertTriangle, BrainCircuit, CheckCircle2, Database, Gauge, Sparkles } from "lucide-react";
-import { AIAssistant } from "../components/AIAssistant";
+import { AlertTriangle, ArrowLeft, BrainCircuit, CheckCircle2, Database, FileSearch, Gauge, Loader2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useParams } from "react-router-dom";
+import { getInvestigation } from "../api/client";
+import type { Investigation } from "../api/types";
 import { Badge } from "../components/Badge";
-import { DataLineage } from "../components/DataLineage";
 import { SectionPanel } from "../components/SectionPanel";
 import { SQLViewer } from "../components/SQLViewer";
-import { comparisonRows, customerInfo, validationResults } from "../data/mockData";
+
+function ListPanel({ title, items, tone = "pink" }: { title: string; items: string[]; tone?: "pink" | "amber" | "rose" | "emerald" }) {
+  const toneClass = {
+    pink: "border-pink-300/15 bg-pink-400/10 text-pink-50",
+    amber: "border-amber-300/15 bg-amber-400/10 text-amber-50",
+    rose: "border-rose-300/15 bg-rose-400/10 text-rose-50",
+    emerald: "border-emerald-300/15 bg-emerald-400/10 text-emerald-50",
+  }[tone];
+
+  return (
+    <div className={`rounded-2xl border p-4 ${toneClass}`}>
+      <h3 className="font-semibold text-white">{title}</h3>
+      <ul className="mt-3 space-y-2 text-sm leading-6">
+        {items.map((item, index) => (
+          <li key={`${title}-${index}`} className="flex gap-2">
+            <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-current opacity-70" />
+            <span>{item}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
 
 export function InvestigationResult() {
+  const { id } = useParams();
+  const [investigation, setInvestigation] = useState<Investigation | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    async function loadInvestigation() {
+      if (!id) return;
+      setLoading(true);
+      setError("");
+      try {
+        setInvestigation(await getInvestigation(id));
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Unable to load investigation.");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    void loadInvestigation();
+  }, [id]);
+
+  const suspiciousLines = useMemo(
+    () => investigation?.analysis.suspiciousSqlSnippets.map((item) => item.lineNumber).filter((line) => line > 0) ?? [],
+    [investigation],
+  );
+
+  if (loading) {
+    return (
+      <div className="grid min-h-[60vh] place-items-center">
+        <div className="text-center">
+          <Loader2 className="mx-auto h-10 w-10 animate-spin text-pink-200" />
+          <p className="mt-4 text-sm text-slate-400">Loading SQL-based RCA...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !investigation) {
+    return (
+      <div className="mx-auto max-w-2xl">
+        <div className="glass-panel rounded-2xl p-8 text-center">
+          <AlertTriangle className="mx-auto h-10 w-10 text-amber-200" />
+          <h1 className="mt-4 text-2xl font-bold text-white">Investigation not available</h1>
+          <p className="mt-3 text-sm leading-6 text-slate-400">{error || "This RCA result was not found in backend storage."}</p>
+          <Link to="/new" className="mt-6 inline-flex rounded-2xl bg-[#b00062] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#c01878]">
+            Create Investigation
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const { analysis } = investigation;
+
   return (
-    <div className="grid gap-6 2xl:grid-cols-[1fr_390px]">
-      <div className="space-y-6">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.24em] text-pink-300/80">Investigation RCA-1048</p>
-            <h1 className="mt-2 text-3xl font-bold tracking-tight text-white sm:text-4xl">Customer Status Mismatch Analysis</h1>
-            <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-400">
-              Simulated RCA result showing data comparison, suspected transformation logic, SQL evidence, lineage, and assistant explanation.
-            </p>
-          </div>
-          <div className="rounded-2xl border border-emerald-300/20 bg-emerald-400/10 px-5 py-4 text-right">
-            <div className="flex items-center justify-end gap-2 text-emerald-100">
-              <Gauge className="h-5 w-5" />
-              <span className="text-sm font-semibold">Confidence</span>
-            </div>
-            <p className="mt-1 text-3xl font-extrabold text-white">High</p>
-          </div>
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <Link to="/new" className="mb-4 inline-flex items-center gap-2 text-sm font-semibold text-pink-200 hover:text-pink-100">
+            <ArrowLeft className="h-4 w-4" />
+            Back to Investigation Intake
+          </Link>
+          <p className="text-sm font-semibold uppercase tracking-[0.24em] text-pink-300/80">Investigation {investigation.id}</p>
+          <h1 className="mt-2 text-3xl font-bold tracking-tight text-white sm:text-4xl">SQL-Based RCA Hypothesis</h1>
+          <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-400">
+            Generated from issue description, intake values, and selected report SQL only. No source data, portal data, CSRTB data, or SQL execution was used.
+          </p>
         </div>
-
-        <div className="grid gap-4 md:grid-cols-3">
-          <div className="glass-panel rounded-2xl p-5">
-            <div className="flex items-center gap-3">
-              <AlertTriangle className="h-5 w-5 text-rose-200" />
-              <p className="text-sm font-semibold text-slate-300">Possible Root Cause</p>
-            </div>
-            <p className="mt-4 text-xl font-bold text-white">Transformation Logic Issue</p>
+        <div className="rounded-2xl border border-pink-300/20 bg-pink-400/10 px-5 py-4 text-right">
+          <div className="flex items-center justify-end gap-2 text-pink-100">
+            <Gauge className="h-5 w-5" />
+            <span className="text-sm font-semibold">Confidence</span>
           </div>
-          <div className="glass-panel rounded-2xl p-5">
-            <div className="flex items-center gap-3">
-              <BrainCircuit className="h-5 w-5 text-pink-200" />
-              <p className="text-sm font-semibold text-slate-300">AI Explanation</p>
-            </div>
-            <p className="mt-4 text-sm leading-6 text-slate-200">CASE statement in SQL converted ACTIVE to INACTIVE when dormant_flag was null.</p>
-          </div>
-          <div className="glass-panel rounded-2xl p-5">
-            <div className="flex items-center gap-3">
-              <CheckCircle2 className="h-5 w-5 text-emerald-200" />
-              <p className="text-sm font-semibold text-slate-300">Recommended Action</p>
-            </div>
-            <p className="mt-4 text-sm leading-6 text-slate-200">Review line 6 mapping and align dormant flag handling with DWH business rule.</p>
-          </div>
+          <p className="mt-1 text-3xl font-extrabold text-white">{analysis.confidence}</p>
         </div>
-
-        <SectionPanel title="Customer Information" eyebrow="Context snapshot" action={<Database className="h-5 w-5 text-pink-200" />}>
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {customerInfo.map((item) => (
-              <div key={item.label} className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">{item.label}</p>
-                <p className="mt-2 text-sm font-semibold text-white">{item.value}</p>
-              </div>
-            ))}
-          </div>
-        </SectionPanel>
-
-        <SectionPanel title="Data Comparison" eyebrow="Source data, report output, CSRTB data">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[780px] text-left text-sm">
-              <thead>
-                <tr className="border-b border-white/10 text-xs uppercase tracking-[0.18em] text-slate-500">
-                  <th className="pb-3">Layer</th>
-                  <th className="pb-3">System</th>
-                  <th className="pb-3">Field</th>
-                  <th className="pb-3">Expected</th>
-                  <th className="pb-3">Actual</th>
-                  <th className="pb-3">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/10">
-                {comparisonRows.map((row) => (
-                  <tr key={row.label} className="transition hover:bg-white/5">
-                    <td className="py-4 font-semibold text-white">{row.label}</td>
-                    <td className="py-4 text-slate-300">{row.system}</td>
-                    <td className="py-4 font-mono text-pink-100">{row.field}</td>
-                    <td className="py-4 text-slate-300">{row.expected}</td>
-                    <td className={row.status === "Failed" ? "py-4 font-semibold text-rose-200" : "py-4 text-slate-300"}>{row.actual}</td>
-                    <td className="py-4">
-                      <Badge>{row.status}</Badge>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </SectionPanel>
-
-        <SectionPanel title="Validation Results" eyebrow="Rule checks">
-          <div className="grid gap-3 md:grid-cols-2">
-            {validationResults.map((item) => (
-              <div key={item.rule} className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="font-semibold text-white">{item.rule}</p>
-                  <Badge>{item.result}</Badge>
-                </div>
-                <p className="mt-3 text-sm leading-6 text-slate-400">{item.details}</p>
-              </div>
-            ))}
-          </div>
-        </SectionPanel>
-
-        <SectionPanel title="Data Flow Visualization" eyebrow="Lineage trace">
-          <DataLineage />
-        </SectionPanel>
-
-        <SectionPanel title="SQL Script Viewer" eyebrow="Highlighted suspected logic" action={<Sparkles className="h-5 w-5 text-pink-200" />}>
-          <SQLViewer />
-        </SectionPanel>
       </div>
 
-      <div className="2xl:sticky 2xl:top-24 2xl:h-[calc(100vh-7rem)]">
-        <AIAssistant />
+      <div className="grid gap-4 md:grid-cols-3">
+        <div className="glass-panel rounded-2xl p-5">
+          <div className="flex items-center gap-3">
+            <BrainCircuit className="h-5 w-5 text-pink-200" />
+            <p className="text-sm font-semibold text-slate-300">Issue Interpretation</p>
+          </div>
+          <p className="mt-4 text-sm leading-6 text-slate-200">{analysis.issueInterpretation}</p>
+        </div>
+        <div className="glass-panel rounded-2xl p-5">
+          <div className="flex items-center gap-3">
+            <FileSearch className="h-5 w-5 text-amber-200" />
+            <p className="text-sm font-semibold text-slate-300">Analysis Basis</p>
+          </div>
+          <p className="mt-4 text-sm leading-6 text-slate-200">{analysis.analysisBasis}</p>
+        </div>
+        <div className="glass-panel rounded-2xl p-5">
+          <div className="flex items-center gap-3">
+            <Database className="h-5 w-5 text-emerald-200" />
+            <p className="text-sm font-semibold text-slate-300">Selected Report</p>
+          </div>
+          <p className="mt-4 text-sm font-semibold text-white">{investigation.report.name}</p>
+          <p className="mt-1 text-xs text-slate-500">{investigation.report.filename}</p>
+        </div>
+      </div>
+
+      <SectionPanel title="Input Context" eyebrow="User-provided investigation details">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+          {[
+            ["Customer ID", investigation.customerId || "Not provided"],
+            ["Field Name", investigation.fieldName || "Not provided"],
+            ["Expected", investigation.expectedValue || "Not provided"],
+            ["Actual", investigation.actualValue || "Not provided"],
+            ["Priority", investigation.priority],
+          ].map(([label, value]) => (
+            <div key={label} className="rounded-2xl border border-white/10 bg-white/5 p-4">
+              <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">{label}</p>
+              <p className="mt-2 text-sm font-semibold text-white">{value}</p>
+            </div>
+          ))}
+        </div>
+        <div className="mt-4 rounded-2xl border border-pink-300/15 bg-pink-400/10 p-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-pink-200">Issue Description</p>
+          <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-200">{investigation.issueDescription}</p>
+        </div>
+      </SectionPanel>
+
+      <SectionPanel title="AI Explanation" eyebrow={`Generated by ${analysis.model}`}>
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+          <p className="text-sm leading-7 text-slate-200">{analysis.summary}</p>
+        </div>
+      </SectionPanel>
+
+      <div className="grid gap-6 xl:grid-cols-2">
+        <ListPanel title="Possible SQL Causes" items={analysis.possibleRootCauses} />
+        <ListPanel title="Recommended Manual Checks" items={analysis.recommendedChecks} tone="emerald" />
+        <ListPanel title="Missing Customer Hypotheses" items={analysis.missingCustomerHypotheses} tone="amber" />
+        <ListPanel title="Mismatch Hypotheses" items={analysis.mismatchHypotheses} />
+      </div>
+
+      <SectionPanel title="Suspicious SQL Logic" eyebrow="AI-highlighted snippets">
+        {analysis.suspiciousSqlSnippets.length > 0 ? (
+          <div className="grid gap-3 lg:grid-cols-2">
+            {analysis.suspiciousSqlSnippets.map((item, index) => (
+              <div key={`${item.lineNumber}-${index}`} className="rounded-2xl border border-rose-300/20 bg-rose-400/10 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <Badge>{item.lineNumber > 0 ? `Line ${item.lineNumber}` : "Needs Review"}</Badge>
+                  <span className="text-xs text-rose-100">Hypothesis</span>
+                </div>
+                <code className="mt-3 block whitespace-pre-wrap rounded-xl bg-slate-950/70 p-3 font-mono text-xs leading-5 text-rose-50">{item.snippet}</code>
+                <p className="mt-3 text-sm leading-6 text-slate-300">{item.reason}</p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-slate-400">No specific SQL lines were highlighted.</p>
+        )}
+      </SectionPanel>
+
+      <SectionPanel title="SQL Script Viewer" eyebrow="Selected report SQL">
+        <SQLViewer sqlCode={investigation.report.sqlCode} suspiciousLines={suspiciousLines} filename={investigation.report.filename} />
+      </SectionPanel>
+
+      <SectionPanel title="Limitations" eyebrow="Important">
+        <div className="grid gap-3 md:grid-cols-2">
+          {analysis.limitations.map((item, index) => (
+            <div key={index} className="rounded-2xl border border-amber-300/20 bg-amber-400/10 p-4">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-200" />
+                <p className="text-sm leading-6 text-amber-50">{item}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </SectionPanel>
+
+      <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-xs text-slate-500">
+        Created {new Date(investigation.createdAt).toLocaleString()} · Generated {new Date(analysis.generatedAt).toLocaleString()}
       </div>
     </div>
   );

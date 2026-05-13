@@ -5,6 +5,7 @@ import { History } from "./pages/History";
 import { InvestigationResult } from "./pages/InvestigationResult";
 import { Login } from "./pages/Login";
 import { NewInvestigation } from "./pages/NewInvestigation";
+import { Reports } from "./pages/Reports";
 
 export default function App() {
   return (
@@ -13,6 +14,7 @@ export default function App() {
       <Route path="/login" element={<Login />} />
       <Route element={<AppLayout />}>
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/reports" element={<Reports />} />
         <Route path="/new" element={<NewInvestigation />} />
         <Route path="/result/:id" element={<InvestigationResult />} />
         <Route path="/history" element={<History />} />
