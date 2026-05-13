@@ -293,13 +293,28 @@ export async function deleteSession(token) {
 
 async function ensureSuperAdmin() {
   const users = await readJson(usersPath);
-  if (users.length > 0) return;
-
   const username = (process.env.ADMIN_USERNAME || "superadmin").trim().toLowerCase();
   const fullName = (process.env.ADMIN_FULL_NAME || "Super Admin").trim();
   const password = process.env.ADMIN_PASSWORD || "Admin@12345";
   const now = new Date().toISOString();
   const { passwordHash, passwordSalt } = hashPassword(password);
+  const existingIndex = users.findIndex((item) => item.username === username);
+
+  if (existingIndex >= 0) {
+    const existingUser = users[existingIndex];
+    users[existingIndex] = {
+      ...existingUser,
+      username,
+      fullName,
+      role: "super_admin",
+      isActive: true,
+      updatedAt: now,
+      passwordHash,
+      passwordSalt,
+    };
+    await writeJson(usersPath, users);
+    return;
+  }
 
   await writeJson(usersPath, [
     {
@@ -313,6 +328,7 @@ async function ensureSuperAdmin() {
       passwordHash,
       passwordSalt,
     },
+    ...users,
   ]);
 }
 

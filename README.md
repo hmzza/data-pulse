@@ -83,7 +83,7 @@ Notes:
 - `OPENAI_API_KEY` must be set for AI investigation generation.
 - if you update `.env`, restart the backend so it reloads the variables.
 - `.env` is ignored by Git and should never be committed.
-- the first super admin account is seeded from `ADMIN_USERNAME`, `ADMIN_PASSWORD`, and `ADMIN_FULL_NAME`.
+- the configured super admin account is synchronized from `ADMIN_USERNAME`, `ADMIN_PASSWORD`, and `ADMIN_FULL_NAME` each time the backend starts in this local prototype.
 - `CLIENT_ORIGIN` may be a comma-separated list. Local Vite dev ports such as `5173` and `5174` are allowed by default.
 
 ## Install dependencies
