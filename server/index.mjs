@@ -19,6 +19,7 @@ import {
   listInvestigations,
   listReports,
   listUsers,
+  storageDir,
   updateReport,
   updateUser,
   verifyPassword,
@@ -355,6 +356,8 @@ ensureStorage()
   .then(() => {
     app.listen(port, () => {
       console.log(`Data Pulse API running on http://localhost:${port}`);
+      console.log(`Data Pulse storage path: ${storageDir}`);
+      console.log(`Data Pulse admin username: ${(process.env.ADMIN_USERNAME || "superadmin").trim().toLowerCase()}`);
     });
   })
   .catch((error) => {

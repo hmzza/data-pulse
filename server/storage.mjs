@@ -9,8 +9,16 @@ const reportsPath = path.join(storageDir, "reports.json");
 const investigationsPath = path.join(storageDir, "investigations.json");
 const usersPath = path.join(storageDir, "users.json");
 const sessionsPath = path.join(storageDir, "sessions.json");
+let storageReadyPromise;
 
 export async function ensureStorage() {
+  if (!storageReadyPromise) {
+    storageReadyPromise = initializeStorage();
+  }
+  return storageReadyPromise;
+}
+
+async function initializeStorage() {
   await mkdir(reportDir, { recursive: true });
   await ensureJsonFile(reportsPath, []);
   await ensureJsonFile(investigationsPath, []);
@@ -277,8 +285,6 @@ export async function getSessionUser(token) {
   const user = users.find((item) => item.id === session.userId);
   if (!user || !user.isActive) return null;
 
-  session.updatedAt = new Date().toISOString();
-  await writeJson(sessionsPath, sessions);
   return sanitizeUser(user);
 }
 
