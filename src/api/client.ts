@@ -2,6 +2,7 @@ import type { Investigation, InvestigationPayload, Report, ReportSummary, User }
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:4000/api";
 const TOKEN_KEY = "data-pulse-auth-token";
+const AUTH_EXPIRED_EVENT = "data-pulse-auth-expired";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const token = getStoredToken();
@@ -21,6 +22,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   if (!response.ok) {
     if (response.status === 401) {
       clearStoredToken();
+      window.dispatchEvent(new Event(AUTH_EXPIRED_EVENT));
+      throw new Error("Session expired. Please sign in again.");
     }
     const payload = await response.json().catch(() => ({}));
     throw new Error(payload.error || `Request failed with ${response.status}`);
@@ -43,6 +46,11 @@ export function setStoredToken(token: string) {
 
 export function clearStoredToken() {
   window.localStorage.removeItem(TOKEN_KEY);
+}
+
+export function subscribeToAuthExpired(callback: () => void) {
+  window.addEventListener(AUTH_EXPIRED_EVENT, callback);
+  return () => window.removeEventListener(AUTH_EXPIRED_EVENT, callback);
 }
 
 export async function login(input: { username: string; password: string }) {

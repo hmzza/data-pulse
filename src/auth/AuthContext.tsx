@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import { getMe, getStoredToken, login as apiLogin, logout as apiLogout } from "../api/client";
+import { getMe, getStoredToken, login as apiLogin, logout as apiLogout, subscribeToAuthExpired } from "../api/client";
 import type { User } from "../api/types";
 
 type AuthContextValue = {
@@ -32,6 +32,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     void hydrate();
+  }, []);
+
+  useEffect(() => {
+    return subscribeToAuthExpired(() => {
+      setUser(null);
+      setLoading(false);
+    });
   }, []);
 
   async function login(input: { username: string; password: string }) {
