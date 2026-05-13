@@ -162,7 +162,7 @@ export function NewInvestigation() {
       </div>
 
       <div className="space-y-6">
-        <SectionPanel title="Generated Result Preview" eyebrow="Simulated RCA output">
+        <SectionPanel title="Generated Result Preview" eyebrow="Backend RCA output">
           {!loading ? (
             <div className="grid min-h-[420px] place-items-center rounded-2xl border border-dashed border-slate-700 bg-slate-950/35 p-8 text-center">
               <div>

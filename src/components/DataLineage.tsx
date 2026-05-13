@@ -1,5 +1,4 @@
-import { ChevronRight } from "lucide-react";
-import { flowSteps } from "../data/mockData";
+import { BrainCircuit, ChevronRight, ClipboardList, FileCode2, SearchCheck } from "lucide-react";
 
 const toneMap: Record<string, string> = {
   pink: "border-pink-300/25 bg-pink-400/10 text-pink-100",
@@ -8,7 +7,45 @@ const toneMap: Record<string, string> = {
   rose: "border-rose-300/25 bg-rose-400/10 text-rose-100",
 };
 
-export function DataLineage() {
+type DataLineageProps = {
+  reportName: string;
+  fieldName?: string;
+  customerId?: string;
+  confidence: "Low" | "Medium" | "High";
+};
+
+export function DataLineage({ reportName, fieldName, customerId, confidence }: DataLineageProps) {
+  const flowSteps = [
+    {
+      title: "Issue Intake",
+      subtitle: customerId || "General investigation",
+      status: fieldName ? `Field: ${fieldName}` : "Issue description captured",
+      tone: "pink",
+      icon: ClipboardList,
+    },
+    {
+      title: "Report SQL",
+      subtitle: reportName,
+      status: "Stored .sql file selected",
+      tone: "amber",
+      icon: FileCode2,
+    },
+    {
+      title: "Logic Review",
+      subtitle: "AI reads intake + SQL",
+      status: "Join, filter, CASE, and date logic checked",
+      tone: "emerald",
+      icon: SearchCheck,
+    },
+    {
+      title: "RCA Output",
+      subtitle: `${confidence} confidence`,
+      status: "SQL-based hypothesis generated",
+      tone: "rose",
+      icon: BrainCircuit,
+    },
+  ];
+
   return (
     <div className="grid gap-3 lg:grid-cols-[1fr_auto_1fr_auto_1fr_auto_1fr]">
       {flowSteps.map((step, index) => (

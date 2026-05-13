@@ -62,3 +62,13 @@ export type InvestigationPayload = {
   issueDescription: string;
   reportId: string;
 };
+
+export type User = {
+  id: string;
+  username: string;
+  fullName: string;
+  role: "super_admin" | "analyst";
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+};

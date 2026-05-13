@@ -1,29 +1,86 @@
 import {
-  BarChart3,
-  Bell,
   BrainCircuit,
   FileClock,
   FileCode2,
   LayoutDashboard,
+  LogOut,
   Menu,
   PlusCircle,
   Search,
   ShieldCheck,
+  Users,
   X,
 } from "lucide-react";
-import { useState } from "react";
-import { NavLink, Outlet } from "react-router-dom";
-
-const navItems = [
-  { label: "Dashboard", to: "/dashboard", icon: LayoutDashboard },
-  { label: "Reports", to: "/reports", icon: FileCode2 },
-  { label: "New Investigation", to: "/new", icon: PlusCircle },
-  { label: "RCA Result", to: "/result/RCA-1048", icon: BrainCircuit },
-  { label: "History", to: "/history", icon: FileClock },
-];
+import { useDeferredValue, useEffect, useState } from "react";
+import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { getHealth, listInvestigations, listReports, listUsers } from "../api/client";
+import { useAuth } from "../auth/AuthContext";
+import type { Investigation, ReportSummary, User } from "../api/types";
 
 export function AppLayout() {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [reports, setReports] = useState<ReportSummary[]>([]);
+  const [investigations, setInvestigations] = useState<Investigation[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [openAiConfigured, setOpenAiConfigured] = useState<boolean | null>(null);
+  const deferredQuery = useDeferredValue(searchQuery);
+
+  const navItems = [
+    { label: "Dashboard", to: "/dashboard", icon: LayoutDashboard },
+    { label: "Reports", to: "/reports", icon: FileCode2 },
+    { label: "New Investigation", to: "/new", icon: PlusCircle },
+    { label: "History", to: "/history", icon: FileClock },
+    ...(user?.role === "super_admin" ? [{ label: "Users", to: "/users", icon: Users }] : []),
+  ];
+
+  useEffect(() => {
+    async function loadSearchData() {
+      try {
+        const [nextReports, nextInvestigations, health] = await Promise.all([listReports(), listInvestigations(), getHealth()]);
+        setReports(nextReports);
+        setInvestigations(nextInvestigations);
+        setOpenAiConfigured(health.openAiConfigured);
+        if (user?.role === "super_admin") {
+          setUsers(await listUsers());
+        } else {
+          setUsers([]);
+        }
+      } catch {
+        setReports([]);
+        setInvestigations([]);
+        setUsers([]);
+        setOpenAiConfigured(null);
+      }
+    }
+
+    void loadSearchData();
+  }, [user?.role]);
+
+  const normalizedQuery = deferredQuery.trim().toLowerCase();
+  const resultItems = normalizedQuery
+    ? [
+        ...investigations
+          .filter((item) => `${item.id} ${item.customerId} ${item.fieldName} ${item.analysis.summary}`.toLowerCase().includes(normalizedQuery))
+          .slice(0, 4)
+          .map((item) => ({ id: item.id, label: item.id, meta: item.analysis.summary, to: `/result/${item.id}` })),
+        ...reports
+          .filter((item) => `${item.name} ${item.filename}`.toLowerCase().includes(normalizedQuery))
+          .slice(0, 4)
+          .map((item) => ({ id: item.id, label: item.name, meta: item.filename, to: "/reports" })),
+        ...users
+          .filter((item) => `${item.username} ${item.fullName} ${item.role}`.toLowerCase().includes(normalizedQuery))
+          .slice(0, 3)
+          .map((item) => ({ id: item.id, label: item.fullName, meta: `@${item.username} · ${item.role}`, to: "/users" })),
+      ]
+    : [];
+
+  async function handleLogout() {
+    await logout();
+    navigate("/login");
+  }
 
   return (
     <div className="min-h-screen bg-trace-bg text-slate-100">
@@ -75,8 +132,8 @@ export function AppLayout() {
           <div className="flex items-center gap-3">
             <ShieldCheck className="h-5 w-5 text-pink-200" />
             <div>
-              <p className="text-sm font-semibold text-white">Mock Mode Active</p>
-              <p className="text-xs text-slate-400">Frontend-only demo data</p>
+              <p className="text-sm font-semibold text-white">{user?.fullName}</p>
+              <p className="text-xs text-slate-400">{user?.role === "super_admin" ? "Super Admin" : "Analyst"} account</p>
             </div>
           </div>
         </div>
@@ -91,20 +148,50 @@ export function AppLayout() {
               <button className="rounded-xl border border-white/10 p-2 text-slate-200 lg:hidden" onClick={() => setOpen(true)} aria-label="Open navigation">
                 <Menu className="h-5 w-5" />
               </button>
-              <div className="hidden min-w-0 items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-slate-400 md:flex">
-                <Search className="h-4 w-4 text-pink-200" />
-                <span className="truncate">Search customer, report, investigation ID...</span>
+              <div className="relative hidden min-w-0 md:block">
+                <div className="flex min-w-0 items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-slate-400 md:flex md:min-w-[360px]">
+                  <Search className="h-4 w-4 text-pink-200" />
+                  <input
+                    value={searchQuery}
+                    onChange={(event) => setSearchQuery(event.target.value)}
+                    className="min-w-0 flex-1 bg-transparent text-slate-100 outline-none placeholder:text-slate-500"
+                    placeholder="Search report, investigation, user..."
+                  />
+                </div>
+                {resultItems.length > 0 ? (
+                  <div className="absolute left-0 top-[calc(100%+10px)] z-30 w-full rounded-2xl border border-white/10 bg-slate-950/95 p-2 shadow-2xl backdrop-blur-xl">
+                    {resultItems.map((item) => (
+                      <button
+                        key={`${item.to}-${item.id}`}
+                        onClick={() => {
+                          setSearchQuery("");
+                          navigate(item.to);
+                        }}
+                        className="flex w-full items-start rounded-xl px-3 py-3 text-left transition hover:bg-white/5"
+                      >
+                        <div>
+                          <p className="text-sm font-semibold text-white">{item.label}</p>
+                          <p className="mt-1 text-xs text-slate-500">{item.meta}</p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
               </div>
             </div>
             <div className="flex items-center gap-3">
               <div className="hidden items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1.5 text-xs font-semibold text-emerald-100 sm:flex">
-                <span className="h-2 w-2 animate-soft-pulse rounded-full bg-emerald-300" />
-                Analysis Engine Ready
+                <span className={`h-2 w-2 rounded-full ${openAiConfigured ? "animate-soft-pulse bg-emerald-300" : "bg-amber-300"}`} />
+                {openAiConfigured ? "AI Analysis Ready" : "AI Key Required"}
               </div>
-              <button className="rounded-xl border border-white/10 bg-white/5 p-2.5 text-slate-200 transition hover:border-pink-300/30 hover:text-pink-100" aria-label="Notifications">
-                <Bell className="h-5 w-5" />
-              </button>
+              <div className="hidden text-right sm:block">
+                <p className="text-sm font-semibold text-white">{user?.fullName}</p>
+                <p className="text-xs text-slate-500">@{user?.username}</p>
+              </div>
               <img src="/data-pulse-logo.png" alt="Data Pulse" className="h-10 w-10 object-contain drop-shadow-[0_0_18px_rgba(236,72,153,0.42)]" />
+              <button onClick={handleLogout} className="rounded-xl border border-white/10 bg-white/5 p-2.5 text-slate-200 transition hover:border-pink-300/30 hover:text-pink-100" aria-label="Logout">
+                <LogOut className="h-5 w-5" />
+              </button>
             </div>
           </div>
         </header>

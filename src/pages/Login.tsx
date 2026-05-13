@@ -1,13 +1,33 @@
 import { ArrowRight, Lock, UserRound } from "lucide-react";
-import { FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
+import { FormEvent, useState } from "react";
+import { Navigate, useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "../auth/AuthContext";
 
 export function Login() {
+  const { login, user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    navigate("/dashboard");
+    setLoading(true);
+    setError("");
+    try {
+      await login({ username, password });
+      navigate(location.state?.from || "/dashboard");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to sign in.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (!authLoading && user) {
+    return <Navigate to="/dashboard" replace />;
   }
 
   return (
@@ -64,26 +84,27 @@ export function Login() {
             <div>
               <p className="text-sm font-semibold uppercase tracking-[0.24em] text-pink-200">Secure workspace</p>
               <h2 className="mt-3 text-3xl font-bold tracking-tight text-white">Sign in to Data Pulse</h2>
-              <p className="mt-3 text-sm leading-6 text-slate-400">Use any demo credentials to enter the frontend prototype.</p>
+              <p className="mt-3 text-sm leading-6 text-slate-400">Use a local account created by the super admin. Default seeded super admin comes from your backend environment.</p>
             </div>
 
             <form onSubmit={handleSubmit} className="mt-9 space-y-5">
+              {error ? <div className="rounded-2xl border border-rose-300/25 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">{error}</div> : null}
               <label className="block">
                 <span className="text-sm font-semibold text-slate-300">Username</span>
                 <span className="mt-2 flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 transition focus-within:border-pink-300/50 focus-within:shadow-glow">
                   <UserRound className="h-5 w-5 text-pink-200" />
-                  <input className="w-full bg-transparent text-slate-100 outline-none placeholder:text-slate-600" placeholder="dwh.analyst" />
+                  <input value={username} onChange={(event) => setUsername(event.target.value)} className="w-full bg-transparent text-slate-100 outline-none placeholder:text-slate-600" placeholder="superadmin" />
                 </span>
               </label>
               <label className="block">
                 <span className="text-sm font-semibold text-slate-300">Password</span>
                 <span className="mt-2 flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 transition focus-within:border-pink-300/50 focus-within:shadow-glow">
                   <Lock className="h-5 w-5 text-pink-200" />
-                  <input type="password" className="w-full bg-transparent text-slate-100 outline-none placeholder:text-slate-600" placeholder="••••••••" />
+                  <input value={password} onChange={(event) => setPassword(event.target.value)} type="password" className="w-full bg-transparent text-slate-100 outline-none placeholder:text-slate-600" placeholder="••••••••" />
                 </span>
               </label>
-              <button className="group flex w-full items-center justify-center gap-2 rounded-2xl bg-[#b00062] px-5 py-3.5 font-bold text-white shadow-[0_0_32px_rgba(176,0,98,0.34)] transition hover:-translate-y-0.5 hover:bg-[#c01878] hover:shadow-[0_0_42px_rgba(176,0,98,0.45)]">
-                Enter RCA Console
+              <button disabled={loading} className="group flex w-full items-center justify-center gap-2 rounded-2xl bg-[#b00062] px-5 py-3.5 font-bold text-white shadow-[0_0_32px_rgba(176,0,98,0.34)] transition hover:-translate-y-0.5 hover:bg-[#c01878] hover:shadow-[0_0_42px_rgba(176,0,98,0.45)] disabled:cursor-not-allowed disabled:opacity-60">
+                {loading ? "Signing In..." : "Enter RCA Console"}
                 <ArrowRight className="h-5 w-5 transition group-hover:translate-x-1" />
               </button>
             </form>

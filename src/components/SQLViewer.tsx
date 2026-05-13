@@ -1,5 +1,4 @@
 import { AlertTriangle, Code2 } from "lucide-react";
-import { sqlLines } from "../data/mockData";
 
 function highlightSql(code: string) {
   const escaped = code
@@ -22,13 +21,14 @@ type SQLViewerProps = {
 };
 
 export function SQLViewer({ sqlCode, suspiciousLines = [], filename = "REPORT_CUSTOMER_STATUS.sql" }: SQLViewerProps) {
-  const lines = sqlCode
-    ? sqlCode.split(/\r?\n/).map((code, index) => ({
+  const normalizedSql = sqlCode ?? "";
+  const lines = normalizedSql
+    ? normalizedSql.split(/\r?\n/).map((code, index) => ({
         number: index + 1,
         code,
         suspicious: suspiciousLines.includes(index + 1),
       }))
-    : sqlLines;
+    : [];
   const firstSuspiciousLine = lines.find((line) => line.suspicious)?.number;
 
   return (
@@ -46,17 +46,21 @@ export function SQLViewer({ sqlCode, suspiciousLines = [], filename = "REPORT_CU
         ) : null}
       </div>
       <div className="max-h-[430px] overflow-auto p-3 font-mono text-sm leading-6">
-        {lines.map((line) => (
-          <div
-            key={line.number}
-            className={`grid grid-cols-[3rem_1fr] rounded-lg px-2 transition ${
-              line.suspicious ? "border border-rose-400/25 bg-rose-500/15 shadow-[0_0_28px_rgba(244,63,94,0.14)]" : "hover:bg-white/5"
-            }`}
-          >
-            <span className={`select-none pr-4 text-right ${line.suspicious ? "text-rose-200" : "text-slate-600"}`}>{line.number}</span>
-            <code className="whitespace-pre text-slate-200" dangerouslySetInnerHTML={{ __html: highlightSql(line.code) }} />
-          </div>
-        ))}
+        {lines.length > 0 ? (
+          lines.map((line) => (
+            <div
+              key={line.number}
+              className={`grid grid-cols-[3rem_1fr] rounded-lg px-2 transition ${
+                line.suspicious ? "border border-rose-400/25 bg-rose-500/15 shadow-[0_0_28px_rgba(244,63,94,0.14)]" : "hover:bg-white/5"
+              }`}
+            >
+              <span className={`select-none pr-4 text-right ${line.suspicious ? "text-rose-200" : "text-slate-600"}`}>{line.number}</span>
+              <code className="whitespace-pre text-slate-200" dangerouslySetInnerHTML={{ __html: highlightSql(line.code) }} />
+            </div>
+          ))
+        ) : (
+          <div className="rounded-xl border border-dashed border-slate-700 px-4 py-6 text-sm text-slate-400">No SQL content is available for this report.</div>
+        )}
       </div>
     </div>
   );

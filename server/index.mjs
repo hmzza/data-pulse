@@ -6,13 +6,22 @@ import { z } from "zod";
 import {
   createInvestigation,
   createReport,
+  createSession,
+  createUser,
+  deleteSession,
   deleteReport,
+  deleteUser,
   ensureStorage,
+  findUserByUsername,
   getInvestigation,
   getReport,
+  getSessionUser,
   listInvestigations,
   listReports,
+  listUsers,
   updateReport,
+  updateUser,
+  verifyPassword,
 } from "./storage.mjs";
 import { analyzeInvestigation } from "./analysis.mjs";
 
@@ -20,7 +29,18 @@ dotenv.config();
 
 const app = express();
 const port = Number(process.env.PORT || 4000);
-const clientOrigin = process.env.CLIENT_ORIGIN || "http://localhost:5173";
+const configuredOrigins = (process.env.CLIENT_ORIGIN || "http://localhost:5173")
+  .split(",")
+  .map((item) => item.trim())
+  .filter(Boolean);
+const allowedOrigins = new Set([
+  ...configuredOrigins,
+  "http://localhost:5173",
+  "http://localhost:5174",
+  "http://127.0.0.1:5173",
+  "http://127.0.0.1:5174",
+]);
+const primaryClientOrigin = configuredOrigins[0] || "http://localhost:5173";
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 },
@@ -41,8 +61,55 @@ const investigationSchema = z.object({
   reportId: z.string().trim().min(1, "Report selection is required."),
 });
 
-app.use(cors({ origin: clientOrigin }));
+const loginSchema = z.object({
+  username: z.string().trim().min(1, "Username is required."),
+  password: z.string().min(1, "Password is required."),
+});
+
+const createUserSchema = z.object({
+  username: z.string().trim().min(3, "Username is required."),
+  fullName: z.string().trim().min(2, "Full name is required."),
+  role: z.enum(["super_admin", "analyst"]),
+  password: z.string().min(8, "Password must be at least 8 characters."),
+  isActive: z.boolean().optional().default(true),
+});
+
+const updateUserSchema = z.object({
+  username: z.string().trim().min(3).optional(),
+  fullName: z.string().trim().min(2).optional(),
+  role: z.enum(["super_admin", "analyst"]).optional(),
+  password: z.string().min(8).optional(),
+  isActive: z.boolean().optional(),
+});
+
+app.use(
+  cors({
+    origin(origin, callback) {
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      if (allowedOrigins.has(origin) || /^http:\/\/(localhost|127\.0\.0\.1):5\d{3}$/.test(origin)) {
+        return callback(null, true);
+      }
+
+      callback(new Error(`Origin ${origin} is not allowed by CORS.`));
+    },
+  }),
+);
 app.use(express.json({ limit: "5mb" }));
+app.use(async (request, _response, next) => {
+  const authHeader = request.headers.authorization;
+  if (!authHeader?.startsWith("Bearer ")) {
+    request.user = null;
+    return next();
+  }
+
+  const token = authHeader.slice("Bearer ".length);
+  request.user = await getSessionUser(token);
+  request.authToken = token;
+  next();
+});
 
 app.get("/", (_request, response) => {
   response.type("html").send(`<!doctype html>
@@ -61,7 +128,7 @@ app.get("/", (_request, response) => {
   <body>
     <main>
       <h1>Data Pulse API is running</h1>
-      <p>This port is for backend API requests only. Open the app UI at <a href="${clientOrigin}">${clientOrigin}</a>.</p>
+      <p>This port is for backend API requests only. Open the app UI at <a href="${primaryClientOrigin}">${primaryClientOrigin}</a>.</p>
       <p>Health check: <code>/api/health</code></p>
     </main>
   </body>
@@ -77,10 +144,89 @@ app.get("/api/health", (_request, response) => {
     ok: true,
     service: "data-pulse-api",
     openAiConfigured: Boolean(process.env.OPENAI_API_KEY),
+    authConfigured: true,
   });
 });
 
-app.get("/api/reports", async (_request, response, next) => {
+app.post("/api/auth/login", async (request, response, next) => {
+  try {
+    const payload = loginSchema.parse(request.body);
+    const user = await findUserByUsername(payload.username);
+    if (!user || !user.isActive || !verifyPassword(user, payload.password)) {
+      return response.status(401).json({ error: "Invalid username or password." });
+    }
+
+    const session = await createSession(user.id);
+    response.json({
+      token: session.token,
+      user: {
+        id: user.id,
+        username: user.username,
+        fullName: user.fullName,
+        role: user.role,
+        isActive: user.isActive,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/auth/me", requireAuth, (request, response) => {
+  response.json({ user: request.user });
+});
+
+app.post("/api/auth/logout", requireAuth, async (request, response, next) => {
+  try {
+    await deleteSession(request.authToken);
+    response.status(204).send();
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/users", requireSuperAdmin, async (_request, response, next) => {
+  try {
+    response.json({ users: await listUsers() });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/users", requireSuperAdmin, async (request, response, next) => {
+  try {
+    const payload = createUserSchema.parse(request.body);
+    const user = await createUser(payload);
+    response.status(201).json({ user });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.put("/api/users/:id", requireSuperAdmin, async (request, response, next) => {
+  try {
+    const payload = updateUserSchema.parse(request.body);
+    const user = await updateUser(request.params.id, payload);
+    if (!user) return response.status(404).json({ error: "User not found." });
+    response.json({ user });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.delete("/api/users/:id", requireSuperAdmin, async (request, response, next) => {
+  try {
+    const deleted = await deleteUser(request.params.id);
+    if (!deleted) return response.status(404).json({ error: "User not found." });
+    response.status(204).send();
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/reports", requireAuth, async (_request, response, next) => {
   try {
     response.json({ reports: await listReports() });
   } catch (error) {
@@ -88,7 +234,7 @@ app.get("/api/reports", async (_request, response, next) => {
   }
 });
 
-app.post("/api/reports", async (request, response, next) => {
+app.post("/api/reports", requireAuth, async (request, response, next) => {
   try {
     const payload = reportSchema.parse(request.body);
     const report = await createReport(payload);
@@ -98,7 +244,7 @@ app.post("/api/reports", async (request, response, next) => {
   }
 });
 
-app.post("/api/reports/upload", upload.single("file"), async (request, response, next) => {
+app.post("/api/reports/upload", requireAuth, upload.single("file"), async (request, response, next) => {
   try {
     if (!request.file) {
       return response.status(400).json({ error: "A .sql file is required." });
@@ -119,7 +265,7 @@ app.post("/api/reports/upload", upload.single("file"), async (request, response,
   }
 });
 
-app.get("/api/reports/:id", async (request, response, next) => {
+app.get("/api/reports/:id", requireAuth, async (request, response, next) => {
   try {
     const report = await getReport(request.params.id);
     if (!report) return response.status(404).json({ error: "Report not found." });
@@ -129,7 +275,7 @@ app.get("/api/reports/:id", async (request, response, next) => {
   }
 });
 
-app.put("/api/reports/:id", async (request, response, next) => {
+app.put("/api/reports/:id", requireAuth, async (request, response, next) => {
   try {
     const payload = reportSchema.parse(request.body);
     const report = await updateReport(request.params.id, payload);
@@ -140,7 +286,7 @@ app.put("/api/reports/:id", async (request, response, next) => {
   }
 });
 
-app.delete("/api/reports/:id", async (request, response, next) => {
+app.delete("/api/reports/:id", requireAuth, async (request, response, next) => {
   try {
     const deleted = await deleteReport(request.params.id);
     if (!deleted) return response.status(404).json({ error: "Report not found." });
@@ -150,7 +296,7 @@ app.delete("/api/reports/:id", async (request, response, next) => {
   }
 });
 
-app.get("/api/investigations", async (_request, response, next) => {
+app.get("/api/investigations", requireAuth, async (_request, response, next) => {
   try {
     response.json({ investigations: await listInvestigations() });
   } catch (error) {
@@ -158,7 +304,7 @@ app.get("/api/investigations", async (_request, response, next) => {
   }
 });
 
-app.post("/api/investigations", async (request, response, next) => {
+app.post("/api/investigations", requireAuth, async (request, response, next) => {
   try {
     const issue = investigationSchema.parse(request.body);
     const report = await getReport(issue.reportId);
@@ -182,7 +328,7 @@ app.post("/api/investigations", async (request, response, next) => {
   }
 });
 
-app.get("/api/investigations/:id", async (request, response, next) => {
+app.get("/api/investigations/:id", requireAuth, async (request, response, next) => {
   try {
     const investigation = await getInvestigation(request.params.id);
     if (!investigation) return response.status(404).json({ error: "Investigation not found." });
@@ -215,3 +361,20 @@ ensureStorage()
     console.error("Failed to initialize storage.", error);
     process.exit(1);
   });
+
+function requireAuth(request, response, next) {
+  if (!request.user) {
+    return response.status(401).json({ error: "Authentication required." });
+  }
+  next();
+}
+
+function requireSuperAdmin(request, response, next) {
+  if (!request.user) {
+    return response.status(401).json({ error: "Authentication required." });
+  }
+  if (request.user.role !== "super_admin") {
+    return response.status(403).json({ error: "Super admin access is required." });
+  }
+  next();
+}

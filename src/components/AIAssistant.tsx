@@ -1,7 +1,15 @@
 import { Bot, Send, Sparkles, UserRound } from "lucide-react";
-import { assistantMessages } from "../data/mockData";
 
-export function AIAssistant() {
+type AssistantMessage = {
+  role: "assistant" | "user";
+  text: string;
+};
+
+type AIAssistantProps = {
+  messages: AssistantMessage[];
+};
+
+export function AIAssistant({ messages }: AIAssistantProps) {
   return (
     <aside className="glass-panel flex h-full min-h-[560px] flex-col rounded-2xl">
       <div className="border-b border-white/10 p-5">
@@ -11,13 +19,13 @@ export function AIAssistant() {
           </div>
           <div>
             <h2 className="font-semibold text-white">AI RCA Assistant</h2>
-            <p className="text-xs text-slate-400">Simulated analysis conversation</p>
+            <p className="text-xs text-slate-400">Investigation-specific summary thread</p>
           </div>
         </div>
       </div>
 
       <div className="flex-1 space-y-4 overflow-auto p-5">
-        {assistantMessages.map((message, index) => {
+        {messages.map((message, index) => {
           const isAssistant = message.role === "assistant";
           return (
             <div key={`${message.role}-${index}`} className={`flex gap-3 ${isAssistant ? "" : "justify-end"}`}>
@@ -46,11 +54,12 @@ export function AIAssistant() {
       <div className="border-t border-white/10 p-4">
         <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-slate-950/60 p-2">
           <input
+            disabled
             className="min-w-0 flex-1 bg-transparent px-3 py-2 text-sm text-slate-100 outline-none placeholder:text-slate-500"
-            placeholder="Ask about RCA result..."
+            placeholder="Read-only in current testing phase"
             aria-label="Ask assistant"
           />
-          <button className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#b00062] text-white shadow-[0_0_22px_rgba(176,0,98,0.28)] transition hover:bg-[#c01878]" aria-label="Send message">
+          <button disabled className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#b00062] text-white shadow-[0_0_22px_rgba(176,0,98,0.28)] opacity-60" aria-label="Send message">
             <Send className="h-4 w-4" />
           </button>
         </div>

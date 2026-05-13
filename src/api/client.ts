@@ -1,20 +1,27 @@
-import type { Investigation, InvestigationPayload, Report, ReportSummary } from "./types";
+import type { Investigation, InvestigationPayload, Report, ReportSummary, User } from "./types";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:4000/api";
+const TOKEN_KEY = "data-pulse-auth-token";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const token = getStoredToken();
   let response: Response;
 
   try {
     response = await fetch(`${API_BASE}${path}`, {
       ...init,
-      headers: init?.body instanceof FormData ? init.headers : { "Content-Type": "application/json", ...init?.headers },
+      headers: init?.body instanceof FormData
+        ? { ...(token ? { Authorization: `Bearer ${token}` } : {}), ...init?.headers }
+        : { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}), ...init?.headers },
     });
   } catch {
     throw new Error("Backend API is not running. Start it with `npm run server` or `npm run dev:all`, then try again.");
   }
 
   if (!response.ok) {
+    if (response.status === 401) {
+      clearStoredToken();
+    }
     const payload = await response.json().catch(() => ({}));
     throw new Error(payload.error || `Request failed with ${response.status}`);
   }
@@ -24,6 +31,40 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   }
 
   return response.json() as Promise<T>;
+}
+
+export function getStoredToken() {
+  return window.localStorage.getItem(TOKEN_KEY);
+}
+
+export function setStoredToken(token: string) {
+  window.localStorage.setItem(TOKEN_KEY, token);
+}
+
+export function clearStoredToken() {
+  window.localStorage.removeItem(TOKEN_KEY);
+}
+
+export async function login(input: { username: string; password: string }) {
+  const payload = await request<{ token: string; user: User }>("/auth/login", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+  setStoredToken(payload.token);
+  return payload;
+}
+
+export async function getMe() {
+  const payload = await request<{ user: User }>("/auth/me");
+  return payload.user;
+}
+
+export async function logout() {
+  try {
+    await request<void>("/auth/logout", { method: "POST" });
+  } finally {
+    clearStoredToken();
+  }
 }
 
 export async function listReports() {
@@ -87,4 +128,29 @@ export async function getInvestigation(id: string) {
 export async function listInvestigations() {
   const payload = await request<{ investigations: Investigation[] }>("/investigations");
   return payload.investigations;
+}
+
+export async function listUsers() {
+  const payload = await request<{ users: User[] }>("/users");
+  return payload.users;
+}
+
+export async function createUser(input: { username: string; fullName: string; role: User["role"]; password: string; isActive?: boolean }) {
+  const payload = await request<{ user: User }>("/users", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+  return payload.user;
+}
+
+export async function updateUser(id: string, input: Partial<{ username: string; fullName: string; role: User["role"]; password: string; isActive: boolean }>) {
+  const payload = await request<{ user: User }>(`/users/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(input),
+  });
+  return payload.user;
+}
+
+export async function deleteUser(id: string) {
+  await request<void>(`/users/${id}`, { method: "DELETE" });
 }

@@ -1,4 +1,4 @@
-import { AlertCircle, CheckCircle2, ClipboardCopy, Eye, FileCode2, Loader2, RefreshCw, Save, Trash2, Upload, X } from "lucide-react";
+import { AlertCircle, CheckCircle2, ClipboardCopy, Eye, FileCode2, Loader2, RefreshCw, Save, Search, SlidersHorizontal, Trash2, Upload, X } from "lucide-react";
 import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
 import { SectionPanel } from "../components/SectionPanel";
 import { createReport, deleteReport, getReport, listReports, updateReport, uploadReport } from "../api/client";
@@ -22,11 +22,25 @@ export function Reports() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [query, setQuery] = useState("");
+  const [sortBy, setSortBy] = useState<"recent" | "name" | "created">("recent");
 
-  const sortedReports = useMemo(
-    () => [...reports].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()),
-    [reports],
-  );
+  const filteredReports = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
+    const nextReports = reports.filter((report) =>
+      `${report.name} ${report.filename} ${report.id}`.toLowerCase().includes(normalizedQuery),
+    );
+
+    return nextReports.sort((left, right) => {
+      if (sortBy === "name") {
+        return left.name.localeCompare(right.name);
+      }
+      if (sortBy === "created") {
+        return new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime();
+      }
+      return new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime();
+    });
+  }, [query, reports, sortBy]);
 
   useEffect(() => {
     void refreshReports();
@@ -246,6 +260,25 @@ export function Reports() {
 
         <div className="space-y-6">
           <SectionPanel title="Saved Reports" eyebrow={`${reports.length} available`}>
+            <div className="mb-5 grid gap-3 md:grid-cols-[1fr_220px]">
+              <label className="flex items-center gap-3 rounded-2xl border border-white/10 bg-slate-950/45 px-4 py-3 transition focus-within:border-pink-300/50">
+                <Search className="h-5 w-5 text-pink-200" />
+                <input
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  className="min-w-0 flex-1 bg-transparent text-sm text-slate-100 outline-none placeholder:text-slate-600"
+                  placeholder="Search report name, filename, ID..."
+                />
+              </label>
+              <label className="flex items-center gap-3 rounded-2xl border border-white/10 bg-slate-950/45 px-4 py-3 text-sm font-semibold text-slate-200">
+                <SlidersHorizontal className="h-4 w-4 text-pink-200" />
+                <select value={sortBy} onChange={(event) => setSortBy(event.target.value as "recent" | "name" | "created")} className="w-full bg-transparent outline-none">
+                  <option value="recent">Last Updated</option>
+                  <option value="created">Created Date</option>
+                  <option value="name">Name A-Z</option>
+                </select>
+              </label>
+            </div>
             <div className="space-y-3">
               {loading ? (
                 <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 text-slate-300">
@@ -253,12 +286,12 @@ export function Reports() {
                   Loading reports...
                 </div>
               ) : null}
-              {!loading && sortedReports.length === 0 ? (
+              {!loading && filteredReports.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-slate-700 p-8 text-center text-sm text-slate-400">
-                  No reports uploaded yet.
+                  {reports.length === 0 ? "No reports uploaded yet." : "No reports match the current search."}
                 </div>
               ) : null}
-              {sortedReports.map((report) => (
+              {filteredReports.map((report) => (
                 <div key={report.id} className="rounded-2xl border border-white/10 bg-white/5 p-4 transition hover:border-pink-300/25 hover:bg-pink-400/10">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
@@ -298,7 +331,7 @@ export function Reports() {
                 />
                 <div className="flex flex-wrap gap-3">
                   <button onClick={handleUpdate} className="flex items-center gap-2 rounded-2xl bg-[#b00062] px-5 py-3 text-sm font-bold text-white shadow-[0_0_28px_rgba(176,0,98,0.28)] transition hover:-translate-y-0.5 hover:bg-[#c01878]">
-                    <Save className="h-4 w-4" />
+                    {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                     Save Changes
                   </button>
                   <button onClick={copySelectedSql} className="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-slate-200 transition hover:border-pink-300/25 hover:text-pink-100">
