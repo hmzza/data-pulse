@@ -78,18 +78,6 @@ Install these locally:
 
 Create a local `.env` file based on [`.env.example`](/Users/hamza/Work-Jazz/Projects/data_pulse/.env.example).
 
-Expected variables:
-
-```env
-OPENAI_API_KEY=
-OPENAI_MODEL=gpt-4o-mini
-PORT=4000
-CLIENT_ORIGIN=http://localhost:5173,http://localhost:5174
-ADMIN_USERNAME=superadmin
-ADMIN_PASSWORD=Admin@12345
-ADMIN_FULL_NAME=Super Admin
-```
-
 Notes:
 
 - `OPENAI_API_KEY` must be set for AI investigation generation.
