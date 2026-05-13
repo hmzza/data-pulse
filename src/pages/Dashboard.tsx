@@ -7,6 +7,7 @@ import type { Investigation, ReportSummary } from "../api/types";
 import { Badge } from "../components/Badge";
 import { MetricCard } from "../components/MetricCard";
 import { SectionPanel } from "../components/SectionPanel";
+import { getFieldSummary } from "../utils/investigation";
 import { priorityClass } from "../utils/status";
 
 const pieColors = ["#fb7185", "#f59e0b", "#ec4899", "#94a3b8"];
@@ -246,7 +247,7 @@ export function Dashboard() {
                         </Link>
                       </td>
                       <td className="py-4 text-slate-300">{item.customerId || "Not provided"}</td>
-                      <td className="py-4 text-slate-300">{item.fieldName || "General SQL issue"}</td>
+                      <td className="py-4 text-slate-300">{getFieldSummary(item.fieldComparisons)}</td>
                       <td className="py-4">
                         <Badge>{item.status}</Badge>
                       </td>

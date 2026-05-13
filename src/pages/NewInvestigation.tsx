@@ -1,25 +1,22 @@
-import { AlertCircle, FileSearch, Loader2, WandSparkles } from "lucide-react";
+import { AlertCircle, Check, FileSearch, Loader2, Plus, Trash2, WandSparkles } from "lucide-react";
 import { FormEvent, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { createInvestigation, getHealth, listReports } from "../api/client";
-import type { InvestigationPayload, ReportSummary } from "../api/types";
+import type { FieldComparison, InvestigationPayload, ReportSummary } from "../api/types";
 import { SectionPanel } from "../components/SectionPanel";
 
-const fields = [
-  { id: "customerId", label: "Customer ID", placeholder: "CUST-84721" },
-  { id: "fieldName", label: "Field Name", placeholder: "customer_status" },
-  { id: "expectedValue", label: "Expected Value", placeholder: "ACTIVE" },
-  { id: "actualValue", label: "Actual Value", placeholder: "INACTIVE" },
-] as const;
-
-const initialForm: InvestigationPayload = {
-  customerId: "",
+const emptyFieldComparison: FieldComparison = {
   fieldName: "",
   expectedValue: "",
   actualValue: "",
+};
+
+const initialForm: InvestigationPayload = {
+  customerId: "",
   priority: "High",
   issueDescription: "",
-  reportId: "",
+  fieldComparisons: [{ ...emptyFieldComparison }],
+  reportIds: [],
 };
 
 export function NewInvestigation() {
@@ -40,7 +37,15 @@ export function NewInvestigation() {
         const health = await getHealth();
         setReports(nextReports);
         setOpenAiConfigured(health.openAiConfigured);
-        setForm((current) => ({ ...current, reportId: current.reportId || nextReports[0]?.id || "" }));
+        setForm((current) => ({
+          ...current,
+          reportIds:
+            currentSelectionFilter(current.reportIds, nextReports).length > 0
+              ? currentSelectionFilter(current.reportIds, nextReports)
+              : nextReports[0]?.id
+                ? [nextReports[0].id]
+                : [],
+        }));
       } catch (err) {
         setError(err instanceof Error ? err.message : "Unable to load report list.");
       } finally {
@@ -56,7 +61,23 @@ export function NewInvestigation() {
     setError("");
     setLoading(true);
     try {
-      const investigation = await createInvestigation(form);
+      const payload: InvestigationPayload = {
+        ...form,
+        fieldComparisons: form.fieldComparisons
+          .map((field) => ({
+            fieldName: field.fieldName.trim(),
+            expectedValue: field.expectedValue.trim(),
+            actualValue: field.actualValue.trim(),
+          }))
+          .filter((field) => field.fieldName || field.expectedValue || field.actualValue),
+        reportIds: currentSelectionFilter(form.reportIds, reports),
+      };
+
+      if (payload.reportIds.length === 0) {
+        throw new Error("Select at least one valid report.");
+      }
+
+      const investigation = await createInvestigation(payload);
       navigate(`/result/${investigation.id}`);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unable to generate RCA analysis.";
@@ -70,6 +91,41 @@ export function NewInvestigation() {
     }
   }
 
+  function updateFieldComparison(index: number, key: keyof FieldComparison, value: string) {
+    setForm((current) => ({
+      ...current,
+      fieldComparisons: current.fieldComparisons.map((field, fieldIndex) =>
+        fieldIndex === index ? { ...field, [key]: value } : field,
+      ),
+    }));
+  }
+
+  function addFieldComparison() {
+    setForm((current) => ({
+      ...current,
+      fieldComparisons: [...current.fieldComparisons, { ...emptyFieldComparison }],
+    }));
+  }
+
+  function removeFieldComparison(index: number) {
+    setForm((current) => ({
+      ...current,
+      fieldComparisons:
+        current.fieldComparisons.length === 1
+          ? current.fieldComparisons
+          : current.fieldComparisons.filter((_, fieldIndex) => fieldIndex !== index),
+    }));
+  }
+
+  function toggleReport(reportId: string) {
+    setForm((current) => ({
+      ...current,
+      reportIds: current.reportIds.includes(reportId)
+        ? current.reportIds.filter((currentId) => currentId !== reportId)
+        : [...current.reportIds, reportId],
+    }));
+  }
+
   return (
     <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
       <div className="space-y-6">
@@ -77,7 +133,7 @@ export function NewInvestigation() {
           <p className="text-sm font-semibold uppercase tracking-[0.24em] text-pink-300/80">Issue intake</p>
           <h1 className="mt-2 text-3xl font-bold tracking-tight text-white sm:text-4xl">New Investigation</h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-400">
-            Capture issue context and select an uploaded report SQL file. Analysis is based only on these inputs for now.
+            Capture issue context and select one or more uploaded report SQL files. Analysis is based only on these inputs for now.
           </p>
         </div>
 
@@ -96,17 +152,15 @@ export function NewInvestigation() {
         <SectionPanel title="Investigation Details" eyebrow="Manual issue entry">
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="grid gap-5 sm:grid-cols-2">
-              {fields.map((field) => (
-                <label key={field.id} className="block">
-                  <span className="text-sm font-semibold text-slate-300">{field.label}</span>
-                  <input
-                    value={form[field.id]}
-                    onChange={(event) => setForm({ ...form, [field.id]: event.target.value })}
-                    className="mt-2 w-full rounded-2xl border border-white/10 bg-slate-950/45 px-4 py-3 text-slate-100 outline-none transition placeholder:text-slate-600 focus:border-pink-300/50 focus:shadow-glow"
-                    placeholder={field.placeholder}
-                  />
-                </label>
-              ))}
+              <label className="block">
+                <span className="text-sm font-semibold text-slate-300">Customer ID</span>
+                <input
+                  value={form.customerId}
+                  onChange={(event) => setForm({ ...form, customerId: event.target.value })}
+                  className="mt-2 w-full rounded-2xl border border-white/10 bg-slate-950/45 px-4 py-3 text-slate-100 outline-none transition placeholder:text-slate-600 focus:border-pink-300/50 focus:shadow-glow"
+                  placeholder="CUST-84721"
+                />
+              </label>
               <label className="block">
                 <span className="text-sm font-semibold text-slate-300">Priority</span>
                 <select
@@ -120,23 +174,102 @@ export function NewInvestigation() {
                   <option>Low</option>
                 </select>
               </label>
-              <label className="block">
-                <span className="text-sm font-semibold text-slate-300">Report SQL</span>
-                <select
-                  value={form.reportId}
-                  disabled={reportsLoading || reports.length === 0}
-                  onChange={(event) => setForm({ ...form, reportId: event.target.value })}
-                  className="mt-2 w-full rounded-2xl border border-white/10 bg-slate-950/45 px-4 py-3 text-slate-100 outline-none transition focus:border-pink-300/50 focus:shadow-glow disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {reportsLoading ? <option>Loading reports...</option> : null}
-                  {!reportsLoading && reports.length === 0 ? <option>No reports uploaded</option> : null}
-                  {reports.map((report) => (
-                    <option key={report.id} value={report.id}>
-                      {report.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
+            </div>
+            <div className="rounded-3xl border border-white/10 bg-slate-950/35 p-5">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold uppercase tracking-[0.2em] text-pink-200">Field Comparisons</p>
+                  <p className="mt-2 text-sm leading-6 text-slate-400">Add one or more fields to compare in the same investigation.</p>
+                </div>
+                <button type="button" onClick={addFieldComparison} className="inline-flex items-center gap-2 rounded-2xl border border-pink-300/20 bg-pink-400/10 px-4 py-2.5 text-sm font-semibold text-pink-100 transition hover:bg-pink-400/15">
+                  <Plus className="h-4 w-4" />
+                  Add Field
+                </button>
+              </div>
+              <div className="mt-5 space-y-4">
+                {form.fieldComparisons.map((field, index) => (
+                  <div key={index} className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                    <div className="mb-4 flex items-center justify-between gap-3">
+                      <p className="text-sm font-semibold text-white">Field {index + 1}</p>
+                      <button
+                        type="button"
+                        onClick={() => removeFieldComparison(index)}
+                        disabled={form.fieldComparisons.length === 1}
+                        className="rounded-xl border border-white/10 bg-white/5 p-2 text-slate-300 transition hover:border-rose-300/30 hover:text-rose-100 disabled:cursor-not-allowed disabled:opacity-40"
+                        aria-label={`Remove field ${index + 1}`}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                    <div className="grid gap-4 lg:grid-cols-3">
+                      <label className="block">
+                        <span className="text-sm font-semibold text-slate-300">Field Name</span>
+                        <input
+                          value={field.fieldName}
+                          onChange={(event) => updateFieldComparison(index, "fieldName", event.target.value)}
+                          className="mt-2 w-full rounded-2xl border border-white/10 bg-slate-950/45 px-4 py-3 text-slate-100 outline-none transition placeholder:text-slate-600 focus:border-pink-300/50 focus:shadow-glow"
+                          placeholder="customer_status"
+                        />
+                      </label>
+                      <label className="block">
+                        <span className="text-sm font-semibold text-slate-300">Expected Value</span>
+                        <input
+                          value={field.expectedValue}
+                          onChange={(event) => updateFieldComparison(index, "expectedValue", event.target.value)}
+                          className="mt-2 w-full rounded-2xl border border-white/10 bg-slate-950/45 px-4 py-3 text-slate-100 outline-none transition placeholder:text-slate-600 focus:border-pink-300/50 focus:shadow-glow"
+                          placeholder="ACTIVE"
+                        />
+                      </label>
+                      <label className="block">
+                        <span className="text-sm font-semibold text-slate-300">Actual Value</span>
+                        <input
+                          value={field.actualValue}
+                          onChange={(event) => updateFieldComparison(index, "actualValue", event.target.value)}
+                          className="mt-2 w-full rounded-2xl border border-white/10 bg-slate-950/45 px-4 py-3 text-slate-100 outline-none transition placeholder:text-slate-600 focus:border-pink-300/50 focus:shadow-glow"
+                          placeholder="INACTIVE"
+                        />
+                      </label>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="rounded-3xl border border-white/10 bg-slate-950/35 p-5">
+              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-pink-200">Report SQL Files</p>
+              <p className="mt-2 text-sm leading-6 text-slate-400">Select one or more uploaded reports for combined RCA analysis.</p>
+              <div className="mt-5 grid gap-3 md:grid-cols-2">
+                {reportsLoading ? (
+                  <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-400">Loading reports...</div>
+                ) : null}
+                {!reportsLoading && reports.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-slate-700 p-6 text-sm text-slate-400">No reports uploaded yet.</div>
+                ) : null}
+                {reports.map((report) => {
+                  const selected = form.reportIds.includes(report.id);
+                  return (
+                    <button
+                      key={report.id}
+                      type="button"
+                      onClick={() => toggleReport(report.id)}
+                      className={`rounded-2xl border p-4 text-left transition ${
+                        selected
+                          ? "border-pink-300/30 bg-pink-400/10 shadow-glow"
+                          : "border-white/10 bg-white/5 hover:border-pink-300/20 hover:bg-pink-400/5"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold text-white">{report.name}</p>
+                          <p className="mt-1 truncate text-xs text-slate-500">{report.filename}</p>
+                        </div>
+                        <span className={`grid h-6 w-6 shrink-0 place-items-center rounded-full border ${selected ? "border-pink-300/40 bg-pink-500 text-white" : "border-white/15 text-transparent"}`}>
+                          <Check className="h-3.5 w-3.5" />
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
             <label className="block rounded-3xl border border-pink-300/20 bg-pink-400/10 p-5">
               <span className="text-sm font-semibold uppercase tracking-[0.2em] text-pink-200">Issue Description</span>
@@ -151,7 +284,7 @@ export function NewInvestigation() {
               />
             </label>
             <button
-              disabled={loading || reports.length === 0}
+              disabled={loading || reports.length === 0 || form.reportIds.length === 0}
               className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#b00062] px-5 py-3.5 font-bold text-white shadow-[0_0_32px_rgba(176,0,98,0.34)] transition hover:-translate-y-0.5 hover:bg-[#c01878] hover:shadow-[0_0_42px_rgba(176,0,98,0.45)] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
             >
               {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <WandSparkles className="h-5 w-5" />}
@@ -171,7 +304,7 @@ export function NewInvestigation() {
                 </div>
                 <h2 className="mt-5 text-xl font-semibold text-white">Awaiting SQL-based analysis</h2>
                 <p className="mt-3 max-w-sm text-sm leading-6 text-slate-400">
-                  Submit the issue form to analyze the selected report SQL. No source data, portal data, or SQL execution will be used.
+                  Submit the issue form to analyze the selected report SQL files. No source data, portal data, or SQL execution will be used.
                 </p>
                 {reports.length === 0 ? (
                   <Link to="/reports" className="mt-5 inline-flex items-center gap-2 rounded-2xl bg-[#b00062] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#c01878]">
@@ -187,7 +320,7 @@ export function NewInvestigation() {
               <div>
                 <Loader2 className="mx-auto h-12 w-12 animate-spin text-pink-200" />
                 <h2 className="mt-5 text-xl font-semibold text-white">Analyzing report SQL</h2>
-                <p className="mt-3 text-sm text-slate-400">Using issue description, intake values, and selected SQL code only.</p>
+                <p className="mt-3 text-sm text-slate-400">Using issue description, field comparisons, and selected SQL code only.</p>
               </div>
             </div>
           ) : null}
@@ -218,4 +351,9 @@ export function NewInvestigation() {
       </div>
     </div>
   );
+}
+
+function currentSelectionFilter(reportIds: string[], reports: ReportSummary[]) {
+  const validIds = new Set(reports.map((report) => report.id).filter((reportId): reportId is string => typeof reportId === "string" && reportId.length > 0));
+  return reportIds.filter((reportId): reportId is string => typeof reportId === "string" && validIds.has(reportId));
 }

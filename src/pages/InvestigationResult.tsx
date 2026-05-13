@@ -8,6 +8,7 @@ import { Badge } from "../components/Badge";
 import { DataLineage } from "../components/DataLineage";
 import { SectionPanel } from "../components/SectionPanel";
 import { SQLViewer } from "../components/SQLViewer";
+import { getFieldSummary, getReportSummary } from "../utils/investigation";
 
 function ListPanel({ title, items, tone = "pink" }: { title: string; items: string[]; tone?: "pink" | "amber" | "rose" | "emerald" }) {
   const toneClass = {
@@ -20,14 +21,18 @@ function ListPanel({ title, items, tone = "pink" }: { title: string; items: stri
   return (
     <div className={`rounded-2xl border p-4 ${toneClass}`}>
       <h3 className="font-semibold text-white">{title}</h3>
-      <ul className="mt-3 space-y-2 text-sm leading-6">
-        {items.map((item, index) => (
-          <li key={`${title}-${index}`} className="flex gap-2">
-            <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-current opacity-70" />
-            <span>{item}</span>
-          </li>
-        ))}
-      </ul>
+      {items.length > 0 ? (
+        <ul className="mt-3 space-y-2 text-sm leading-6">
+          {items.map((item, index) => (
+            <li key={`${title}-${index}`} className="flex gap-2">
+              <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-current opacity-70" />
+              <span>{item}</span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="mt-3 text-sm leading-6 opacity-80">No findings were returned for this section.</p>
+      )}
     </div>
   );
 }
@@ -87,10 +92,12 @@ export function InvestigationResult() {
   }
 
   const { analysis } = investigation;
+  const fieldSummary = getFieldSummary(investigation.fieldComparisons);
+  const reportSummary = getReportSummary(investigation);
   const assistantMessages = [
     {
       role: "user" as const,
-      text: `Why is ${investigation.fieldName || "this value"} not matching for ${investigation.customerId || "the reported case"}?`,
+      text: `What does the SQL say about ${fieldSummary} for ${investigation.customerId || "the reported case"}?`,
     },
     {
       role: "assistant" as const,
@@ -139,8 +146,8 @@ export function InvestigationResult() {
 
       <SectionPanel title="Investigation Flow" eyebrow="Current backend workflow">
         <DataLineage
-          reportName={investigation.report.name}
-          fieldName={investigation.fieldName}
+          reportLabel={reportSummary}
+          fieldLabel={fieldSummary}
           customerId={investigation.customerId}
           confidence={analysis.confidence}
         />
@@ -164,25 +171,44 @@ export function InvestigationResult() {
         <div className="glass-panel rounded-2xl p-5">
           <div className="flex items-center gap-3">
             <Database className="h-5 w-5 text-emerald-200" />
-            <p className="text-sm font-semibold text-slate-300">Selected Report</p>
+            <p className="text-sm font-semibold text-slate-300">Selected Reports</p>
           </div>
-          <p className="mt-4 text-sm font-semibold text-white">{investigation.report.name}</p>
-          <p className="mt-1 text-xs text-slate-500">{investigation.report.filename}</p>
+          <p className="mt-4 text-sm font-semibold text-white">{reportSummary}</p>
+          <p className="mt-1 text-xs text-slate-500">{investigation.reports.length} report file(s) included</p>
         </div>
       </div>
 
       <SectionPanel title="Input Context" eyebrow="User-provided investigation details">
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {[
             ["Customer ID", investigation.customerId || "Not provided"],
-            ["Field Name", investigation.fieldName || "Not provided"],
-            ["Expected", investigation.expectedValue || "Not provided"],
-            ["Actual", investigation.actualValue || "Not provided"],
             ["Priority", investigation.priority],
+            ["Reports Selected", String(investigation.reports.length)],
           ].map(([label, value]) => (
             <div key={label} className="rounded-2xl border border-white/10 bg-white/5 p-4">
               <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">{label}</p>
               <p className="mt-2 text-sm font-semibold text-white">{value}</p>
+            </div>
+          ))}
+        </div>
+        <div className="mt-4 grid gap-3 lg:grid-cols-2">
+          {investigation.fieldComparisons.map((field, index) => (
+            <div key={`${field.fieldName}-${index}`} className="rounded-2xl border border-white/10 bg-white/5 p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-pink-200">Field {index + 1}</p>
+              <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                <div>
+                  <p className="text-xs text-slate-500">Field</p>
+                  <p className="mt-1 text-sm font-semibold text-white">{field.fieldName || "Not provided"}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500">Expected</p>
+                  <p className="mt-1 text-sm font-semibold text-white">{field.expectedValue || "Not provided"}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500">Actual</p>
+                  <p className="mt-1 text-sm font-semibold text-white">{field.actualValue || "Not provided"}</p>
+                </div>
+              </div>
             </div>
           ))}
         </div>
@@ -226,8 +252,12 @@ export function InvestigationResult() {
             )}
           </SectionPanel>
 
-          <SectionPanel title="SQL Script Viewer" eyebrow="Selected report SQL">
-            <SQLViewer sqlCode={investigation.report.sqlCode} suspiciousLines={suspiciousLines} filename={investigation.report.filename} />
+          <SectionPanel title="SQL Script Viewer" eyebrow="Selected report SQL files">
+            <div className="space-y-4">
+              {investigation.reports.map((report) => (
+                <SQLViewer key={report.id} sqlCode={report.sqlCode} suspiciousLines={suspiciousLines} filename={report.filename} />
+              ))}
+            </div>
           </SectionPanel>
         </div>
 

@@ -17,6 +17,12 @@ export type SqlSnippet = {
   reason: string;
 };
 
+export type FieldComparison = {
+  fieldName: string;
+  expectedValue: string;
+  actualValue: string;
+};
+
 export type AnalysisResult = {
   analysisBasis: string;
   issueInterpretation: string;
@@ -38,29 +44,25 @@ export type Investigation = {
   createdAt: string;
   updatedAt: string;
   customerId: string;
-  fieldName: string;
-  expectedValue: string;
-  actualValue: string;
   priority: "Low" | "Medium" | "High" | "Critical";
   issueDescription: string;
-  reportId: string;
-  report: {
+  fieldComparisons: FieldComparison[];
+  reportIds: string[];
+  reports: Array<{
     id: string;
     name: string;
     filename: string;
     sqlCode: string;
-  };
+  }>;
   analysis: AnalysisResult;
 };
 
 export type InvestigationPayload = {
   customerId: string;
-  fieldName: string;
-  expectedValue: string;
-  actualValue: string;
   priority: "Low" | "Medium" | "High" | "Critical";
   issueDescription: string;
-  reportId: string;
+  fieldComparisons: FieldComparison[];
+  reportIds: string[];
 };
 
 export type User = {

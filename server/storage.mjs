@@ -47,7 +47,8 @@ async function writeJson(filePath, value) {
 
 export async function listReports() {
   await ensureStorage();
-  return readJson(reportsPath);
+  const reports = await readJson(reportsPath);
+  return reports.map(normalizeReportSummary).filter(Boolean);
 }
 
 export async function getReport(id) {
@@ -128,7 +129,8 @@ export async function deleteReport(id) {
 
 export async function listInvestigations() {
   await ensureStorage();
-  return readJson(investigationsPath);
+  const investigations = await readJson(investigationsPath);
+  return investigations.map(normalizeInvestigationRecord);
 }
 
 export async function getInvestigation(id) {
@@ -140,13 +142,13 @@ export async function createInvestigation(payload) {
   await ensureStorage();
   const investigations = await listInvestigations();
   const now = new Date().toISOString();
-  const investigation = {
+  const investigation = normalizeInvestigationRecord({
     id: `INV-${randomUUID().slice(0, 8).toUpperCase()}`,
     status: "Analyzed",
     createdAt: now,
     updatedAt: now,
     ...payload,
-  };
+  });
   await writeJson(investigationsPath, [investigation, ...investigations]);
   return investigation;
 }
@@ -360,4 +362,49 @@ function slugify(value) {
 
 function normalizeSql(sqlCode) {
   return sqlCode.endsWith("\n") ? sqlCode : `${sqlCode}\n`;
+}
+
+function normalizeReportSummary(report) {
+  if (!report || typeof report !== "object") return null;
+  if (typeof report.id !== "string" || typeof report.name !== "string" || typeof report.filename !== "string") {
+    return null;
+  }
+
+  return {
+    ...report,
+    sizeBytes: typeof report.sizeBytes === "number" ? report.sizeBytes : 0,
+    createdAt: typeof report.createdAt === "string" ? report.createdAt : new Date(0).toISOString(),
+    updatedAt: typeof report.updatedAt === "string" ? report.updatedAt : new Date(0).toISOString(),
+  };
+}
+
+function normalizeInvestigationRecord(investigation) {
+  const fieldComparisons = Array.isArray(investigation.fieldComparisons)
+    ? investigation.fieldComparisons
+    : investigation.fieldName || investigation.expectedValue || investigation.actualValue
+      ? [
+          {
+            fieldName: investigation.fieldName || "",
+            expectedValue: investigation.expectedValue || "",
+            actualValue: investigation.actualValue || "",
+          },
+        ]
+      : [];
+
+  const reports = Array.isArray(investigation.reports)
+    ? investigation.reports
+    : investigation.report
+      ? [investigation.report]
+      : [];
+
+  const reportIds = Array.isArray(investigation.reportIds)
+    ? investigation.reportIds
+    : reports.map((report) => report.id);
+
+  return {
+    ...investigation,
+    fieldComparisons,
+    reports,
+    reportIds,
+  };
 }

@@ -16,6 +16,7 @@ import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { getHealth, listInvestigations, listReports, listUsers } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
 import type { Investigation, ReportSummary, User } from "../api/types";
+import { getFieldSummary } from "../utils/investigation";
 
 export function AppLayout() {
   const { user, logout } = useAuth();
@@ -63,7 +64,7 @@ export function AppLayout() {
   const resultItems = normalizedQuery
     ? [
         ...investigations
-          .filter((item) => `${item.id} ${item.customerId} ${item.fieldName} ${item.analysis.summary}`.toLowerCase().includes(normalizedQuery))
+          .filter((item) => `${item.id} ${item.customerId} ${getFieldSummary(item.fieldComparisons)} ${item.analysis.summary}`.toLowerCase().includes(normalizedQuery))
           .slice(0, 4)
           .map((item) => ({ id: item.id, label: item.id, meta: item.analysis.summary, to: `/result/${item.id}` })),
         ...reports

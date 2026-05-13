@@ -8,24 +8,24 @@ const toneMap: Record<string, string> = {
 };
 
 type DataLineageProps = {
-  reportName: string;
-  fieldName?: string;
+  reportLabel: string;
+  fieldLabel?: string;
   customerId?: string;
   confidence: "Low" | "Medium" | "High";
 };
 
-export function DataLineage({ reportName, fieldName, customerId, confidence }: DataLineageProps) {
+export function DataLineage({ reportLabel, fieldLabel, customerId, confidence }: DataLineageProps) {
   const flowSteps = [
     {
       title: "Issue Intake",
       subtitle: customerId || "General investigation",
-      status: fieldName ? `Field: ${fieldName}` : "Issue description captured",
+      status: fieldLabel ? `Fields: ${fieldLabel}` : "Issue description captured",
       tone: "pink",
       icon: ClipboardList,
     },
     {
       title: "Report SQL",
-      subtitle: reportName,
+      subtitle: reportLabel,
       status: "Stored .sql file selected",
       tone: "amber",
       icon: FileCode2,

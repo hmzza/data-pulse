@@ -5,6 +5,7 @@ import { listInvestigations } from "../api/client";
 import type { Investigation } from "../api/types";
 import { Badge } from "../components/Badge";
 import { SectionPanel } from "../components/SectionPanel";
+import { getFieldSummary } from "../utils/investigation";
 import { priorityClass } from "../utils/status";
 
 export function History() {
@@ -33,7 +34,7 @@ export function History() {
 
   const filteredRows = useMemo(() => {
     return rows.filter((item) => {
-      const matchesQuery = `${item.id} ${item.customerId} ${item.fieldName} ${item.issueDescription} ${item.analysis.summary}`.toLowerCase().includes(query.toLowerCase());
+      const matchesQuery = `${item.id} ${item.customerId} ${getFieldSummary(item.fieldComparisons)} ${item.issueDescription} ${item.analysis.summary}`.toLowerCase().includes(query.toLowerCase());
       const matchesStatus = status === "All" || item.status === status;
       const matchesPriority = priority === "All" || item.priority === priority;
       return matchesQuery && matchesStatus && matchesPriority;
@@ -112,7 +113,7 @@ export function History() {
                     </Link>
                   </td>
                   <td className="py-4 text-slate-300">{item.customerId || "Not provided"}</td>
-                  <td className="py-4 text-slate-300">{item.fieldName || "SQL issue"}</td>
+                  <td className="py-4 text-slate-300">{getFieldSummary(item.fieldComparisons)}</td>
                   <td className="py-4">
                     <Badge>{item.status}</Badge>
                   </td>

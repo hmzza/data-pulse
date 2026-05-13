@@ -54,12 +54,35 @@ const reportSchema = z.object({
 
 const investigationSchema = z.object({
   customerId: z.string().trim().optional().default(""),
-  fieldName: z.string().trim().optional().default(""),
-  expectedValue: z.string().trim().optional().default(""),
-  actualValue: z.string().trim().optional().default(""),
   priority: z.enum(["Low", "Medium", "High", "Critical"]),
   issueDescription: z.string().trim().min(15, "Issue description must include enough detail for analysis."),
-  reportId: z.string().trim().min(1, "Report selection is required."),
+  fieldComparisons: z.preprocess(
+    (value) =>
+      Array.isArray(value)
+        ? value
+            .filter((item) => item && typeof item === "object")
+            .map((item) => ({
+              fieldName: typeof item.fieldName === "string" ? item.fieldName : "",
+              expectedValue: typeof item.expectedValue === "string" ? item.expectedValue : "",
+              actualValue: typeof item.actualValue === "string" ? item.actualValue : "",
+            }))
+            .filter((item) => item.fieldName || item.expectedValue || item.actualValue)
+        : [],
+    z.array(
+      z.object({
+        fieldName: z.string().trim().optional().default(""),
+        expectedValue: z.string().trim().optional().default(""),
+        actualValue: z.string().trim().optional().default(""),
+      }),
+    ),
+  ),
+  reportIds: z.preprocess(
+    (value) =>
+      Array.isArray(value)
+        ? value.filter((item) => typeof item === "string" && item.trim().length > 0)
+        : [],
+    z.array(z.string().trim().min(1)).min(1, "Select at least one valid report."),
+  ),
 });
 
 const loginSchema = z.object({
@@ -308,18 +331,21 @@ app.get("/api/investigations", requireAuth, async (_request, response, next) => 
 app.post("/api/investigations", requireAuth, async (request, response, next) => {
   try {
     const issue = investigationSchema.parse(request.body);
-    const report = await getReport(issue.reportId);
-    if (!report) return response.status(404).json({ error: "Selected report was not found." });
+    const reports = await Promise.all(issue.reportIds.map((reportId) => getReport(reportId)));
+    if (reports.some((report) => !report)) {
+      return response.status(404).json({ error: "One or more selected reports were not found." });
+    }
 
-    const analysis = await analyzeInvestigation({ issue, report });
+    const resolvedReports = reports.filter(Boolean);
+    const analysis = await analyzeInvestigation({ issue, reports: resolvedReports });
     const investigation = await createInvestigation({
       ...issue,
-      report: {
+      reports: resolvedReports.map((report) => ({
         id: report.id,
         name: report.name,
         filename: report.filename,
         sqlCode: report.sqlCode,
-      },
+      })),
       analysis,
     });
 
