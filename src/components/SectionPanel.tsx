@@ -10,7 +10,7 @@ type SectionPanelProps = {
 
 export function SectionPanel({ title, eyebrow, action, children, className = "" }: SectionPanelProps) {
   return (
-    <section className={`glass-panel rounded-2xl p-5 ${className}`}>
+    <section className={`glass-panel min-w-0 rounded-2xl p-5 ${className}`}>
       <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
         <div>
           {eyebrow ? <p className="text-xs font-semibold uppercase tracking-[0.2em] text-pink-300/80">{eyebrow}</p> : null}

@@ -11,7 +11,8 @@ type AIAssistantProps = {
 
 export function AIAssistant({ messages }: AIAssistantProps) {
   return (
-    <aside className="glass-panel flex h-full min-h-[560px] flex-col rounded-2xl">
+    <aside className="glass-panel min-w-0 w-full overflow-hidden rounded-2xl 2xl:sticky 2xl:top-24">
+      <div className="flex h-full min-h-[560px] flex-col">
       <div className="border-b border-white/10 p-5">
         <div className="flex items-center gap-3">
           <div className="grid h-11 w-11 place-items-center rounded-2xl bg-gradient-to-br from-pink-300 to-fuchsia-500 text-slate-950 shadow-glow">
@@ -35,7 +36,7 @@ export function AIAssistant({ messages }: AIAssistantProps) {
                 </div>
               ) : null}
               <div
-                className={`max-w-[82%] rounded-2xl px-4 py-3 text-sm leading-6 ${
+                className={`max-w-full rounded-2xl px-4 py-3 text-sm leading-6 sm:max-w-[82%] ${
                   isAssistant ? "border border-pink-300/15 bg-pink-400/10 text-slate-100" : "bg-white text-slate-950"
                 }`}
               >
@@ -63,6 +64,7 @@ export function AIAssistant({ messages }: AIAssistantProps) {
             <Send className="h-4 w-4" />
           </button>
         </div>
+      </div>
       </div>
     </aside>
   );

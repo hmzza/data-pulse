@@ -19,7 +19,7 @@ function ListPanel({ title, items, tone = "pink" }: { title: string; items: stri
   }[tone];
 
   return (
-    <div className={`rounded-2xl border p-4 ${toneClass}`}>
+    <div className={`min-w-0 rounded-2xl border p-4 ${toneClass}`}>
       <h3 className="font-semibold text-white">{title}</h3>
       {items.length > 0 ? (
         <ul className="mt-3 space-y-2 text-sm leading-6">
@@ -153,22 +153,22 @@ export function InvestigationResult() {
         />
       </SectionPanel>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <div className="glass-panel rounded-2xl p-5">
+      <div className="grid gap-4 lg:grid-cols-3">
+        <div className="glass-panel min-w-0 rounded-2xl p-5">
           <div className="flex items-center gap-3">
             <BrainCircuit className="h-5 w-5 text-pink-200" />
             <p className="text-sm font-semibold text-slate-300">Issue Interpretation</p>
           </div>
           <p className="mt-4 text-sm leading-6 text-slate-200">{analysis.issueInterpretation}</p>
         </div>
-        <div className="glass-panel rounded-2xl p-5">
+        <div className="glass-panel min-w-0 rounded-2xl p-5">
           <div className="flex items-center gap-3">
             <FileSearch className="h-5 w-5 text-amber-200" />
             <p className="text-sm font-semibold text-slate-300">Analysis Basis</p>
           </div>
           <p className="mt-4 text-sm leading-6 text-slate-200">{analysis.analysisBasis}</p>
         </div>
-        <div className="glass-panel rounded-2xl p-5">
+        <div className="glass-panel min-w-0 rounded-2xl p-5">
           <div className="flex items-center gap-3">
             <Database className="h-5 w-5 text-emerald-200" />
             <p className="text-sm font-semibold text-slate-300">Selected Reports</p>
@@ -224,9 +224,9 @@ export function InvestigationResult() {
         </div>
       </SectionPanel>
 
-      <div className="grid gap-6 xl:grid-cols-[1.3fr_0.85fr]">
-        <div className="space-y-6">
-          <div className="grid gap-6 xl:grid-cols-2">
+      <div className="grid gap-6 2xl:grid-cols-[minmax(0,1fr)_22rem]">
+        <div className="min-w-0 space-y-6">
+          <div className="grid gap-6 2xl:grid-cols-2">
             <ListPanel title="Possible SQL Causes" items={analysis.possibleRootCauses} />
             <ListPanel title="Recommended Manual Checks" items={analysis.recommendedChecks} tone="emerald" />
             <ListPanel title="Missing Customer Hypotheses" items={analysis.missingCustomerHypotheses} tone="amber" />
@@ -235,9 +235,9 @@ export function InvestigationResult() {
 
           <SectionPanel title="Suspicious SQL Logic" eyebrow="AI-highlighted snippets">
             {analysis.suspiciousSqlSnippets.length > 0 ? (
-              <div className="grid gap-3 lg:grid-cols-2">
+              <div className="grid gap-3 2xl:grid-cols-2">
                 {analysis.suspiciousSqlSnippets.map((item, index) => (
-                  <div key={`${item.lineNumber}-${index}`} className="rounded-2xl border border-rose-300/20 bg-rose-400/10 p-4">
+                  <div key={`${item.lineNumber}-${index}`} className="min-w-0 rounded-2xl border border-rose-300/20 bg-rose-400/10 p-4">
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <Badge>{item.lineNumber > 0 ? `Line ${item.lineNumber}` : "Needs Review"}</Badge>
                       <span className="text-xs text-rose-100">Hypothesis</span>
