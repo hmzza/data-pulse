@@ -76,6 +76,9 @@ export function NewInvestigation() {
       if (payload.reportIds.length === 0) {
         throw new Error("Select at least one valid report.");
       }
+      if (payload.issueDescription.trim().length < 15) {
+        throw new Error("Issue description must include enough detail for analysis.");
+      }
 
       const investigation = await createInvestigation(payload);
       navigate(`/result/${investigation.id}`);
@@ -279,6 +282,7 @@ export function NewInvestigation() {
               <textarea
                 value={form.issueDescription}
                 onChange={(event) => setForm({ ...form, issueDescription: event.target.value })}
+                minLength={15}
                 className="mt-4 min-h-52 w-full resize-y rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-slate-100 outline-none transition placeholder:text-slate-600 focus:border-pink-300/50 focus:shadow-glow"
                 placeholder="Example: CNC team reported that customer numbers 10231, 10239 and 10588 are missing from the report output. The portal shows these customers active for the May reporting cycle. Please inspect the selected report SQL for joins, filters, date windows, and null handling that could exclude these customers."
               />
