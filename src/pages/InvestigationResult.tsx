@@ -3,12 +3,10 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { getInvestigation } from "../api/client";
 import type { Investigation } from "../api/types";
-import { AIAssistant } from "../components/AIAssistant";
 import { Badge } from "../components/Badge";
-import { DataLineage } from "../components/DataLineage";
 import { SectionPanel } from "../components/SectionPanel";
 import { SQLViewer } from "../components/SQLViewer";
-import { getFieldSummary, getReportSummary } from "../utils/investigation";
+import { getReportSummary } from "../utils/investigation";
 
 function ListPanel({ title, items, tone = "pink" }: { title: string; items: string[]; tone?: "pink" | "amber" | "rose" | "emerald" }) {
   const toneClass = {
@@ -92,34 +90,7 @@ export function InvestigationResult() {
   }
 
   const { analysis } = investigation;
-  const fieldSummary = getFieldSummary(investigation.fieldComparisons);
   const reportSummary = getReportSummary(investigation);
-  const assistantMessages = [
-    {
-      role: "user" as const,
-      text: `What does the SQL say about ${fieldSummary} for ${investigation.customerId || "the reported case"}?`,
-    },
-    {
-      role: "assistant" as const,
-      text: analysis.issueInterpretation,
-    },
-    {
-      role: "user" as const,
-      text: "Which SQL logic looks most suspicious?",
-    },
-    {
-      role: "assistant" as const,
-      text: analysis.suspiciousSqlSnippets[0]?.reason || analysis.possibleRootCauses[0] || analysis.summary,
-    },
-    {
-      role: "user" as const,
-      text: "What should I manually verify next?",
-    },
-    {
-      role: "assistant" as const,
-      text: analysis.recommendedChecks.join(" "),
-    },
-  ];
 
   return (
     <div className="space-y-6">
@@ -144,13 +115,31 @@ export function InvestigationResult() {
         </div>
       </div>
 
-      <SectionPanel title="Investigation Flow" eyebrow="Current backend workflow">
-        <DataLineage
-          reportLabel={reportSummary}
-          fieldLabel={fieldSummary}
-          customerId={investigation.customerId}
-          confidence={analysis.confidence}
-        />
+      <SectionPanel title="Suspicious SQL Logic" eyebrow="AI-highlighted snippets">
+        {analysis.suspiciousSqlSnippets.length > 0 ? (
+          <div className="grid gap-3 2xl:grid-cols-2">
+            {analysis.suspiciousSqlSnippets.map((item, index) => (
+              <div key={`${item.lineNumber}-${index}`} className="min-w-0 rounded-2xl border border-rose-300/20 bg-rose-400/10 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <Badge>{item.lineNumber > 0 ? `Line ${item.lineNumber}` : "Needs Review"}</Badge>
+                  <span className="text-xs text-rose-100">Hypothesis</span>
+                </div>
+                <code className="mt-3 block whitespace-pre-wrap rounded-xl bg-slate-950/70 p-3 font-mono text-xs leading-5 text-rose-50">{item.snippet}</code>
+                <p className="mt-3 text-sm leading-6 text-slate-300">{item.reason}</p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-slate-400">No specific SQL lines were highlighted.</p>
+        )}
+      </SectionPanel>
+
+      <SectionPanel title="SQL Script Viewer" eyebrow="Selected report SQL files">
+        <div className="space-y-4">
+          {investigation.reports.map((report) => (
+            <SQLViewer key={report.id} sqlCode={report.sqlCode} suspiciousLines={suspiciousLines} filename={report.filename} />
+          ))}
+        </div>
       </SectionPanel>
 
       <div className="grid gap-4 lg:grid-cols-3">
@@ -178,90 +167,19 @@ export function InvestigationResult() {
         </div>
       </div>
 
-      <SectionPanel title="Input Context" eyebrow="User-provided investigation details">
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {[
-            ["Customer ID", investigation.customerId || "Not provided"],
-            ["Priority", investigation.priority],
-            ["Reports Selected", String(investigation.reports.length)],
-          ].map(([label, value]) => (
-            <div key={label} className="rounded-2xl border border-white/10 bg-white/5 p-4">
-              <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">{label}</p>
-              <p className="mt-2 text-sm font-semibold text-white">{value}</p>
-            </div>
-          ))}
-        </div>
-        <div className="mt-4 grid gap-3 lg:grid-cols-2">
-          {investigation.fieldComparisons.map((field, index) => (
-            <div key={`${field.fieldName}-${index}`} className="rounded-2xl border border-white/10 bg-white/5 p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-pink-200">Field {index + 1}</p>
-              <div className="mt-3 grid gap-3 sm:grid-cols-3">
-                <div>
-                  <p className="text-xs text-slate-500">Field</p>
-                  <p className="mt-1 text-sm font-semibold text-white">{field.fieldName || "Not provided"}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-slate-500">Expected</p>
-                  <p className="mt-1 text-sm font-semibold text-white">{field.expectedValue || "Not provided"}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-slate-500">Actual</p>
-                  <p className="mt-1 text-sm font-semibold text-white">{field.actualValue || "Not provided"}</p>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-        <div className="mt-4 rounded-2xl border border-pink-300/15 bg-pink-400/10 p-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-pink-200">Issue Description</p>
-          <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-200">{investigation.issueDescription}</p>
-        </div>
-      </SectionPanel>
-
       <SectionPanel title="AI Explanation" eyebrow={`Generated by ${analysis.model}`}>
         <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
           <p className="text-sm leading-7 text-slate-200">{analysis.summary}</p>
         </div>
       </SectionPanel>
 
-      <div className="grid gap-6 2xl:grid-cols-[minmax(0,1fr)_22rem]">
-        <div className="min-w-0 space-y-6">
-          <div className="grid gap-6 2xl:grid-cols-2">
-            <ListPanel title="Possible SQL Causes" items={analysis.possibleRootCauses} />
-            <ListPanel title="Recommended Manual Checks" items={analysis.recommendedChecks} tone="emerald" />
-            <ListPanel title="Missing Customer Hypotheses" items={analysis.missingCustomerHypotheses} tone="amber" />
-            <ListPanel title="Mismatch Hypotheses" items={analysis.mismatchHypotheses} />
-          </div>
-
-          <SectionPanel title="Suspicious SQL Logic" eyebrow="AI-highlighted snippets">
-            {analysis.suspiciousSqlSnippets.length > 0 ? (
-              <div className="grid gap-3 2xl:grid-cols-2">
-                {analysis.suspiciousSqlSnippets.map((item, index) => (
-                  <div key={`${item.lineNumber}-${index}`} className="min-w-0 rounded-2xl border border-rose-300/20 bg-rose-400/10 p-4">
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <Badge>{item.lineNumber > 0 ? `Line ${item.lineNumber}` : "Needs Review"}</Badge>
-                      <span className="text-xs text-rose-100">Hypothesis</span>
-                    </div>
-                    <code className="mt-3 block whitespace-pre-wrap rounded-xl bg-slate-950/70 p-3 font-mono text-xs leading-5 text-rose-50">{item.snippet}</code>
-                    <p className="mt-3 text-sm leading-6 text-slate-300">{item.reason}</p>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-slate-400">No specific SQL lines were highlighted.</p>
-            )}
-          </SectionPanel>
-
-          <SectionPanel title="SQL Script Viewer" eyebrow="Selected report SQL files">
-            <div className="space-y-4">
-              {investigation.reports.map((report) => (
-                <SQLViewer key={report.id} sqlCode={report.sqlCode} suspiciousLines={suspiciousLines} filename={report.filename} />
-              ))}
-            </div>
-          </SectionPanel>
+      <div className="space-y-6">
+        <div className="grid gap-6 2xl:grid-cols-2">
+          <ListPanel title="Possible SQL Causes" items={analysis.possibleRootCauses} />
+          <ListPanel title="Recommended Manual Checks" items={analysis.recommendedChecks} tone="emerald" />
+          <ListPanel title="Missing Customer Hypotheses" items={analysis.missingCustomerHypotheses} tone="amber" />
+          <ListPanel title="Mismatch Hypotheses" items={analysis.mismatchHypotheses} />
         </div>
-
-        <AIAssistant messages={assistantMessages} />
       </div>
 
       <SectionPanel title="Limitations" eyebrow="Important">
