@@ -41,6 +41,33 @@ const allowedOrigins = new Set([
   "http://127.0.0.1:5173",
   "http://127.0.0.1:5174",
 ]);
+
+function isPrivateNetworkDevOrigin(origin) {
+  try {
+    const url = new URL(origin);
+    if (url.protocol !== "http:" || !/^5\d{3}$/.test(url.port)) {
+      return false;
+    }
+
+    if (url.hostname === "localhost" || url.hostname === "127.0.0.1" || url.hostname === "[::1]") {
+      return true;
+    }
+
+    const octets = url.hostname.split(".").map(Number);
+    if (octets.length !== 4 || octets.some((value) => !Number.isInteger(value) || value < 0 || value > 255)) {
+      return false;
+    }
+
+    return (
+      octets[0] === 10 ||
+      (octets[0] === 172 && octets[1] >= 16 && octets[1] <= 31) ||
+      (octets[0] === 192 && octets[1] === 168)
+    );
+  } catch {
+    return false;
+  }
+}
+
 const primaryClientOrigin = configuredOrigins[0] || "http://localhost:5173";
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -113,7 +140,7 @@ app.use(
         return callback(null, true);
       }
 
-      if (allowedOrigins.has(origin) || /^http:\/\/(localhost|127\.0\.0\.1):5\d{3}$/.test(origin)) {
+      if (allowedOrigins.has(origin) || isPrivateNetworkDevOrigin(origin)) {
         return callback(null, true);
       }
 
