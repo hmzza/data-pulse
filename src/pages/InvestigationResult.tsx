@@ -115,6 +115,10 @@ export function InvestigationResult() {
         </div>
       </div>
 
+      <SectionPanel title="Suggestions & Recommendations" eyebrow="Proposed next steps">
+        <ListPanel title="Recommended Actions" items={analysis.recommendations ?? analysis.recommendedChecks} tone="emerald" />
+      </SectionPanel>
+
       <SectionPanel title="Suspicious SQL Logic" eyebrow="AI-highlighted snippets">
         {analysis.suspiciousSqlSnippets.length > 0 ? (
           <div className="grid gap-3 2xl:grid-cols-2">

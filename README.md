@@ -16,7 +16,10 @@ Data Pulse helps an analyst:
 - upload or paste report SQL files
 - manage saved reports in the application
 - create a new investigation using issue details and a selected report
-- generate AI-assisted SQL-based RCA hypotheses
+- generate AI-assisted SQL-based RCA hypotheses with GPT-6 Luna
+- review actionable suggestions and recommendations alongside diagnostic checks
+- choose field names extracted from selected SQL reports, or enter a custom field
+- filter dashboard metrics, charts, and recent investigations by an inclusive creation-date range
 - review prior investigations
 - sign in with a local account
 - manage users from a super admin account
@@ -81,6 +84,7 @@ Create a local `.env` file based on [`.env.example`](/Users/hamza/Work-Jazz/Proj
 Notes:
 
 - `OPENAI_API_KEY` must be set for AI investigation generation.
+- `OPENAI_MODEL` defaults to `gpt-6-luna` in the backend and `.env.example`.
 - if you update `.env`, restart the backend so it reloads the variables.
 - `.env` is ignored by Git and should never be committed.
 - the configured super admin account is synchronized from `ADMIN_USERNAME`, `ADMIN_PASSWORD`, and `ADMIN_FULL_NAME` each time the backend starts in this local prototype.
@@ -131,7 +135,7 @@ npm run dev
    - uploading an existing `.sql` file
 5. Go to `New Investigation`
 6. Fill in the issue details
-7. Select the uploaded report from the `Report SQL` dropdown
+7. Select one or more uploaded reports under `Report SQL Files`; field dropdowns load their output columns and aliases. SQL wildcards cannot be expanded without database metadata, so use manual entry for those fields.
 8. Write a detailed issue description
 9. Click `Generate SQL-Based RCA`
 10. Review the generated result page
@@ -216,6 +220,8 @@ npm run build
 ```
 
 This verifies the frontend TypeScript and produces output in `dist/`.
+
+Run focused SQL column extraction, date filtering, and mocked AI response checks with `npm test`. These checks do not call OpenAI.
 
 ## Current limitations
 

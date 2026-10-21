@@ -34,6 +34,7 @@ export type AnalysisResult = {
   mismatchHypotheses: string[];
   limitations: string[];
   recommendedChecks: string[];
+  recommendations?: string[];
   model: string;
   generatedAt: string;
 };

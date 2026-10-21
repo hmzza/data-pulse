@@ -1,8 +1,10 @@
 import { AlertCircle, Check, FileSearch, Loader2, Plus, Trash2, WandSparkles } from "lucide-react";
 import { FormEvent, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { createInvestigation, getHealth, listReports } from "../api/client";
+import { createInvestigation, getHealth, getReport, listReports } from "../api/client";
 import type { FieldComparison, InvestigationPayload, ReportSummary } from "../api/types";
+import { FieldNameSelect } from "../components/FieldNameSelect";
+import { extractSqlColumns } from "../utils/sqlColumns";
 import { SectionPanel } from "../components/SectionPanel";
 
 const emptyFieldComparison: FieldComparison = {
@@ -23,6 +25,9 @@ export function NewInvestigation() {
   const navigate = useNavigate();
   const [form, setForm] = useState<InvestigationPayload>(initialForm);
   const [reports, setReports] = useState<ReportSummary[]>([]);
+  const [columns, setColumns] = useState<string[]>([]);
+  const [columnsLoading, setColumnsLoading] = useState(false);
+  const [columnsError, setColumnsError] = useState("");
   const [reportsLoading, setReportsLoading] = useState(true);
   const [openAiConfigured, setOpenAiConfigured] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(false);
@@ -55,6 +60,21 @@ export function NewInvestigation() {
 
     void loadReports();
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    setColumns([]);
+    setColumnsError("");
+    setColumnsLoading(form.reportIds.length > 0);
+    void Promise.all(form.reportIds.map((id) => getReport(id))).then((selectedReports) => {
+      if (!cancelled) setColumns([...new Set(selectedReports.flatMap((report) => extractSqlColumns(report.sqlCode)))].sort());
+    }).catch((err) => {
+      if (!cancelled) setColumnsError(err instanceof Error ? err.message : "Unable to load columns.");
+    }).finally(() => {
+      if (!cancelled) setColumnsLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [form.reportIds]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -189,6 +209,9 @@ export function NewInvestigation() {
                   Add Field
                 </button>
               </div>
+              <p className="mt-3 text-xs text-slate-400" role="status">
+                {columnsLoading ? "Loading columns from selected reports…" : columnsError ? `Columns unavailable: ${columnsError} You can enter a field manually.` : columns.length ? `${columns.length} columns found in selected report SQL. You can also enter a field manually.` : "Select reports to load columns. Wildcards require manual field entry because database metadata is unavailable."}
+              </p>
               <div className="mt-5 space-y-4">
                 {form.fieldComparisons.map((field, index) => (
                   <div key={index} className="rounded-2xl border border-white/10 bg-white/5 p-4">
@@ -205,15 +228,7 @@ export function NewInvestigation() {
                       </button>
                     </div>
                     <div className="grid gap-4 lg:grid-cols-3">
-                      <label className="block">
-                        <span className="text-sm font-semibold text-slate-300">Field Name</span>
-                        <input
-                          value={field.fieldName}
-                          onChange={(event) => updateFieldComparison(index, "fieldName", event.target.value)}
-                          className="mt-2 w-full rounded-2xl border border-white/10 bg-slate-950/45 px-4 py-3 text-slate-100 outline-none transition placeholder:text-slate-600 focus:border-pink-300/50 focus:shadow-glow"
-                          placeholder="customer_status"
-                        />
-                      </label>
+                      <FieldNameSelect value={field.fieldName} columns={columns} onChange={(value) => updateFieldComparison(index, "fieldName", value)} />
                       <label className="block">
                         <span className="text-sm font-semibold text-slate-300">Expected Value</span>
                         <input

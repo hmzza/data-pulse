@@ -8,6 +8,7 @@ import { Badge } from "../components/Badge";
 import { MetricCard } from "../components/MetricCard";
 import { SectionPanel } from "../components/SectionPanel";
 import { getFieldSummary } from "../utils/investigation";
+import { buildDashboardTrend, localDateKey, withinDateRange } from "../utils/dashboardDates";
 import { priorityClass } from "../utils/status";
 
 const pieColors = ["#fb7185", "#f59e0b", "#ec4899", "#94a3b8"];
@@ -18,23 +19,14 @@ type HealthPayload = {
   openAiConfigured: boolean;
 };
 
-type TrendRow = {
-  day: string;
-  investigations: number;
-  highPriority: number;
-};
-
-type VolumeRow = {
-  month: string;
-  investigations: number;
-};
-
 export function Dashboard() {
   const [investigations, setInvestigations] = useState<Investigation[]>([]);
   const [reports, setReports] = useState<ReportSummary[]>([]);
   const [health, setHealth] = useState<HealthPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
 
   useEffect(() => {
     void refreshDashboard();
@@ -55,29 +47,34 @@ export function Dashboard() {
     }
   }
 
+  const invalidRange = Boolean(startDate && endDate && startDate > endDate);
+  const filteredInvestigations = investigations.filter((item) => withinDateRange(item.createdAt, startDate, endDate));
+  const filteredReports = reports.filter((item) => withinDateRange(item.createdAt, startDate, endDate));
+  const rangeLabel = startDate || endDate ? `${startDate || "Beginning"} – ${endDate || "Present"}` : "All time";
+
   const priorityCounts = {
-    Critical: investigations.filter((item) => item.priority === "Critical").length,
-    High: investigations.filter((item) => item.priority === "High").length,
-    Medium: investigations.filter((item) => item.priority === "Medium").length,
-    Low: investigations.filter((item) => item.priority === "Low").length,
+    Critical: filteredInvestigations.filter((item) => item.priority === "Critical").length,
+    High: filteredInvestigations.filter((item) => item.priority === "High").length,
+    Medium: filteredInvestigations.filter((item) => item.priority === "Medium").length,
+    Low: filteredInvestigations.filter((item) => item.priority === "Low").length,
   };
 
   const highPriorityCount = priorityCounts.Critical + priorityCounts.High;
-  const highConfidenceCount = investigations.filter((item) => item.analysis.confidence === "High").length;
-  const investigationsToday = investigations.filter((item) => isSameDay(item.createdAt, new Date())).length;
+  const highConfidenceCount = filteredInvestigations.filter((item) => item.analysis.confidence === "High").length;
+  const investigationsToday = filteredInvestigations.filter((item) => isSameDay(item.createdAt, new Date())).length;
 
   const metrics = [
     {
       label: "Total Investigations",
-      value: String(investigations.length),
+      value: String(filteredInvestigations.length),
       delta: `${investigationsToday} created today`,
       tone: "pink",
       icon: Activity,
     },
     {
       label: "Reports Uploaded",
-      value: String(reports.length),
-      delta: reports[0] ? `Last updated ${formatShortDate(reports[0].updatedAt)}` : "No SQL reports yet",
+      value: String(filteredReports.length),
+      delta: filteredReports[0] ? `Last updated ${formatShortDate(filteredReports[0].updatedAt)}` : "No SQL reports yet",
       tone: "amber",
       icon: FileCode2,
     },
@@ -97,15 +94,15 @@ export function Dashboard() {
     },
   ];
 
-  const issueTrendData = buildRecentTrend(investigations);
+  const issueTrendData = buildDashboardTrend(filteredInvestigations, startDate, endDate);
   const severityData = [
     { name: "Critical", value: priorityCounts.Critical },
     { name: "High", value: priorityCounts.High },
     { name: "Medium", value: priorityCounts.Medium },
     { name: "Low", value: priorityCounts.Low },
   ].filter((item) => item.value > 0);
-  const investigationVolume = buildMonthlyVolume(investigations);
-  const recentInvestigations = [...investigations]
+  const investigationVolume = buildDashboardTrend(filteredInvestigations, startDate, endDate, true);
+  const recentInvestigations = [...filteredInvestigations]
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, 5);
 
@@ -128,6 +125,21 @@ export function Dashboard() {
         </button>
       </div>
 
+      <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+        <div className="flex flex-wrap items-end gap-4">
+          <label className="text-sm text-slate-300">From date
+            <input type="date" value={startDate} max={endDate || undefined} onChange={(event) => setStartDate(event.target.value)} className="mt-2 block rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-white [color-scheme:dark]" />
+          </label>
+          <label className="text-sm text-slate-300">To date
+            <input type="date" value={endDate} min={startDate || undefined} onChange={(event) => setEndDate(event.target.value)} className="mt-2 block rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-white [color-scheme:dark]" />
+          </label>
+          <button onClick={() => { const today = new Date(); const start = new Date(today); start.setDate(start.getDate() - 6); setStartDate(localDateKey(start)); setEndDate(localDateKey(today)); }} className="rounded-xl border border-white/10 px-3 py-2 text-sm text-pink-100">Last 7 days</button>
+          <button onClick={() => { setStartDate(""); setEndDate(""); }} className="rounded-xl border border-white/10 px-3 py-2 text-sm text-pink-100">All time</button>
+        </div>
+        <p className="mt-3 text-xs text-slate-400" role="status">{rangeLabel} · {filteredInvestigations.length} investigations · Filters use creation dates in your local timezone.</p>
+        {invalidRange ? <p role="alert" className="mt-2 text-sm text-rose-200">From date must be on or before To date.</p> : null}
+      </div>
+
       {error ? (
         <div className="rounded-2xl border border-rose-300/25 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">{error}</div>
       ) : null}
@@ -145,7 +157,7 @@ export function Dashboard() {
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[1.4fr_0.9fr]">
-        <SectionPanel title="Investigation Trend" eyebrow="Last 7 days" action={<BarChart3 className="h-5 w-5 text-pink-200" />}>
+        <SectionPanel title="Investigation Trend" eyebrow={rangeLabel} action={<BarChart3 className="h-5 w-5 text-pink-200" />}>
           <div className="h-80">
             {issueTrendData.some((item) => item.investigations > 0) ? (
               <ResponsiveContainer width="100%" height="100%">
@@ -168,7 +180,7 @@ export function Dashboard() {
                 </AreaChart>
               </ResponsiveContainer>
             ) : (
-              <EmptyPanel message="No investigations have been created yet." />
+              <EmptyPanel message="No investigations in the selected date range." />
             )}
           </div>
         </SectionPanel>
@@ -207,12 +219,12 @@ export function Dashboard() {
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[0.95fr_1.45fr]">
-        <SectionPanel title="Investigation Volume" eyebrow="Monthly intake" action={<Database className="h-5 w-5 text-pink-200" />}>
+        <SectionPanel title="Investigation Volume" eyebrow={rangeLabel} action={<Database className="h-5 w-5 text-pink-200" />}>
           <div className="h-72">
             {investigationVolume.some((item) => item.investigations > 0) ? (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={investigationVolume} margin={{ left: -18, right: 8, top: 8, bottom: 0 }}>
-                  <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: "#94a3b8", fontSize: 12 }} />
+                  <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: "#94a3b8", fontSize: 12 }} />
                   <YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={{ fill: "#94a3b8", fontSize: 12 }} />
                   <Tooltip contentStyle={{ background: "#020617", border: "1px solid rgba(148,163,184,0.2)", borderRadius: 14 }} />
                   <Bar dataKey="investigations" radius={[10, 10, 0, 0]} fill="#c026d3" />
@@ -266,7 +278,7 @@ export function Dashboard() {
               </table>
             ) : (
               <div className="rounded-2xl border border-dashed border-slate-700 p-8 text-center text-sm text-slate-400">
-                No investigations yet. Create one from <Link to="/new" className="font-semibold text-pink-200 hover:text-pink-100">New Investigation</Link>.
+                No investigations in this date range. Create one from <Link to="/new" className="font-semibold text-pink-200 hover:text-pink-100">New Investigation</Link>.
               </div>
             )}
           </div>
@@ -285,50 +297,6 @@ function EmptyPanel({ message }: { message: string }) {
       </div>
     </div>
   );
-}
-
-function buildRecentTrend(investigations: Investigation[]): TrendRow[] {
-  const days: TrendRow[] = [];
-  const now = new Date();
-
-  for (let index = 6; index >= 0; index -= 1) {
-    const dayDate = new Date(now);
-    dayDate.setDate(now.getDate() - index);
-    const key = dayDate.toDateString();
-    const dailyInvestigations = investigations.filter((item) => new Date(item.createdAt).toDateString() === key);
-
-    days.push({
-      day: dayDate.toLocaleDateString(undefined, { weekday: "short" }),
-      investigations: dailyInvestigations.length,
-      highPriority: dailyInvestigations.filter((item) => item.priority === "High" || item.priority === "Critical").length,
-    });
-  }
-
-  return days;
-}
-
-function buildMonthlyVolume(investigations: Investigation[]): VolumeRow[] {
-  const counts = new Map<string, number>();
-
-  investigations.forEach((item) => {
-    const date = new Date(item.createdAt);
-    const key = `${date.getFullYear()}-${date.getMonth()}`;
-    counts.set(key, (counts.get(key) || 0) + 1);
-  });
-
-  const rows: VolumeRow[] = [];
-  const now = new Date();
-
-  for (let index = 5; index >= 0; index -= 1) {
-    const date = new Date(now.getFullYear(), now.getMonth() - index, 1);
-    const key = `${date.getFullYear()}-${date.getMonth()}`;
-    rows.push({
-      month: date.toLocaleDateString(undefined, { month: "short" }),
-      investigations: counts.get(key) || 0,
-    });
-  }
-
-  return rows;
 }
 
 function isSameDay(iso: string, compare: Date) {

@@ -18,6 +18,7 @@ const rcaSchema = z.object({
   mismatchHypotheses: z.array(z.string()),
   limitations: z.array(z.string()),
   recommendedChecks: z.array(z.string()),
+  recommendations: z.array(z.string()),
 });
 
 const jsonSchema = {
@@ -34,6 +35,7 @@ const jsonSchema = {
     "mismatchHypotheses",
     "limitations",
     "recommendedChecks",
+    "recommendations",
   ],
   properties: {
     analysisBasis: { type: "string" },
@@ -58,6 +60,7 @@ const jsonSchema = {
     mismatchHypotheses: { type: "array", items: { type: "string" } },
     limitations: { type: "array", items: { type: "string" } },
     recommendedChecks: { type: "array", items: { type: "string" } },
+    recommendations: { type: "array", items: { type: "string" } },
   },
 };
 
@@ -69,7 +72,7 @@ export async function analyzeInvestigation({ issue, reports }) {
   }
 
   const client = new OpenAI();
-  const model = process.env.OPENAI_MODEL || "gpt-4o-mini";
+  const model = process.env.OPENAI_MODEL || "gpt-6-luna";
   const numberedReports = reports.map((report) => {
     const numberedSql = report.sqlCode
       .split(/\r?\n/)
@@ -87,6 +90,7 @@ export async function analyzeInvestigation({ issue, reports }) {
       "Do not claim that source data, report output data, portal data, CSRTB data, or SQL execution was verified.",
       "Issue description is the most important signal. Use it to infer what kind of SQL logic could cause the problem.",
       "Frame findings as hypotheses and manual checks, not proven root causes.",
+      "Provide prioritized, actionable recommendations tied to the selected SQL and issue: suggested SQL changes, why they may help, and how to validate them before applying. Distinguish these from recommendedChecks, which are diagnostic steps. Do not invent column names or claim changes were applied.",
       "If the issue is about missing customers, focus on joins, filters, WHERE clauses, GROUP BY, DISTINCT, HAVING, date windows, status filters, and null handling.",
       "If the issue is about mismatched values, focus on CASE expressions, transformations, joins, default values, type casts, aggregations, and precedence.",
     ].join("\n"),
